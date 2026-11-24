@@ -1,0 +1,1753 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Personal Expense Tracker Offline</title>
+<style>
+  :root{
+    --bg:#f4efe4; --surface:#fffdf6; --surface-alt:#efe8d8;
+    --text:#1c1a15; --dim:#7a7263; --border:#e0d7c2;
+    --gold:#c6a15b; --gold-deep:#a8823d; --danger:#b23a32;
+    --darkcard:#131315; --darkdim:#9a958a; --darktext:#f2eee6;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0e0e10; --surface:#17171a; --surface-alt:#1f1f23;
+      --text:#f2eee6; --dim:#9a958a; --border:#2b2b30;
+      --gold:#c6a15b; --gold-deep:#c6a15b; --danger:#d06055;
+    }
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    font-size:15px;line-height:1.45;}
+  button,[role="button"],select,input:not([type="checkbox"]){min-height:44px;font:inherit;color:inherit;}
+  button{cursor:pointer;background:none;border:none;color:inherit;}
+  .font-display{font-family:"Marcellus","Times New Roman",Georgia,serif;letter-spacing:.01em;}
+  .money{font-variant-numeric:tabular-nums;}
+  main{max-width:672px;margin:0 auto;padding:12px 16px 150px;}
+  h2,h3{margin:0;font-weight:600;}
+  /* month switcher */
+  .mswitch{display:flex;align-items:center;justify-content:space-between;}
+  .mswitch .arrow{width:44px;height:44px;border-radius:50%;border:1px solid var(--border);font-size:19px;color:var(--text);background:transparent;}
+  .mswitch .mlabel{font-size:21px;}
+  /* cards */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;}
+  .darkcard{background:var(--darkcard);border:1px solid #c6a15b66;border-radius:24px;padding:15px 18px;color:var(--darktext);}
+  .darkcard .dlbl{color:var(--darkdim);font-size:13px;letter-spacing:.02em;}
+  .darkcard .dbig{color:var(--gold);font-size:36px;line-height:1.15;}
+  /* monogram */
+  .mono{display:grid;place-items:center;border-radius:50%;flex:0 0 auto;font-family:"Marcellus","Times New Roman",Georgia,serif;}
+  /* progress */
+  .prog{height:6px;border-radius:99px;background:var(--surface-alt);overflow:hidden;}
+  .prog>i{display:block;height:100%;border-radius:99px;}
+  /* rows & lists */
+  .listbox{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:0 16px;}
+  .erow{display:flex;width:100%;align-items:center;gap:12px;padding:12px 0;text-align:left;border-bottom:1px solid var(--border);color:var(--text);}
+  .erow:last-child{border-bottom:none;}
+  .badge{display:inline-flex;align-items:center;gap:4px;border-radius:99px;padding:2px 8px;font-size:11px;font-weight:500;}
+  .badge i{width:6px;height:6px;border-radius:50%;display:inline-block;}
+  .empty{border-radius:12px;padding:20px 16px;text-align:center;font-size:14px;background:var(--surface);color:var(--dim);border:1px solid var(--border);}
+  /* buttons & chips */
+  .btn-gold{display:block;width:100%;background:var(--gold);color:#141310;border-radius:12px;padding:14px;font-size:16px;font-weight:600;text-align:center;}
+  .btn-outline{display:block;width:100%;border:1px solid var(--gold);color:var(--gold-deep);border-radius:12px;padding:13px;font-size:15px;font-weight:600;text-align:center;background:transparent;}
+  .btn-pill{border:1px solid var(--gold);color:var(--gold-deep);border-radius:99px;padding:9px 16px;font-size:13px;font-weight:600;white-space:nowrap;background:transparent;}
+  .chip{border-radius:99px;padding:9px 16px;font-size:13px;font-weight:600;border:1px solid var(--border);background:var(--surface);color:var(--text);}
+  .secttl{font-size:20px;margin-top:16px;}
+  .secttl-sm{font-size:18px;margin-top:28px;}
+  .dim{color:var(--dim);} .small{font-size:13px;} .xsmall{font-size:12px;}
+  /* calendar */
+  .calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .caldow{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:12px;font-weight:500;color:var(--dim);margin-top:16px;}
+  .caldow span{padding:4px 0;}
+  .cell{min-height:52px;border-radius:12px;border:1px solid var(--border);background:var(--surface);color:var(--text);display:flex;flex-direction:column;align-items:center;padding-top:6px;width:100%;}
+  .cell .dn{font-size:14px;font-weight:600;line-height:1;}
+  .cell .da{font-size:10px;margin-top:4px;line-height:1;color:var(--gold-deep);}
+  .cell.sel{background:var(--gold);color:#141310;border-color:var(--gold);}
+  .cell.sel .da{color:#141310;}
+  .cell.today{border-color:var(--gold);}
+  /* nav */
+  .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--surface);border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom);}
+  .tabbar-in{max-width:672px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr);}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 2px 8px;font-size:11px;font-weight:500;color:var(--dim);min-height:56px;}
+  .tab.on{color:var(--gold-deep);}
+  .fab{position:fixed;right:16px;bottom:96px;z-index:40;width:56px;height:56px;border-radius:50%;background:var(--gold);color:#141310;border:1px solid #8a6d3b;font-size:30px;box-shadow:0 8px 22px rgba(0,0,0,.35);font-family:"Marcellus",Georgia,serif;}
+  /* sheets */
+  .sheetwrap{position:fixed;inset:0;z-index:60;display:none;}
+  .sheetwrap.open{display:block;}
+  .sheetwrap .scrim{position:absolute;inset:0;background:rgba(0,0,0,.6);width:100%;height:100%;}
+  .sheet{position:relative;background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:512px;margin:0 auto;max-height:92vh;overflow-y:auto;padding:20px 20px calc(24px + env(safe-area-inset-bottom));margin-top:8vh;}
+  .sheetwrap{display:none;} .sheetwrap.open{display:flex;flex-direction:column;justify-content:flex-end;}
+  .grab{width:40px;height:4px;border-radius:99px;background:var(--border);margin:0 auto 16px;}
+  .sheet h2{font-size:24px;}
+  .fldlbl{display:block;font-size:13px;font-weight:500;color:var(--dim);margin-top:20px;}
+  input,select,textarea{background:var(--surface-alt);border:1px solid var(--border);border-radius:12px;padding:11px 12px;width:100%;color:var(--text);outline:none;font:inherit;}
+  input:focus,select:focus{border-color:var(--gold);}
+  .amtinput{font-family:"Marcellus","Times New Roman",Georgia,serif;font-size:30px;padding:12px 16px;border:1px solid var(--gold);border-radius:12px;width:100%;background:var(--surface-alt);color:var(--text);outline:none;}
+  .catchips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+  .catchip{border-radius:99px;padding:9px 16px;font-size:14px;font-weight:500;}
+  .seg2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+  .seg2 button{border-radius:12px;padding:13px;font-size:15px;font-weight:600;border:1px solid var(--border);background:var(--surface-alt);color:var(--text);}
+  .seg2 button.on{background:var(--gold);color:#141310;border-color:var(--gold);}
+  .err{color:var(--danger);font-size:14px;margin-top:12px;}
+  .delbtn2{width:100%;border:1px solid var(--danger);color:var(--danger);border-radius:12px;padding:12px;font-size:15px;font-weight:500;margin-top:8px;background:transparent;}
+  /* full page overlay (category) */
+  .pageov{position:fixed;inset:0;z-index:45;background:var(--bg);overflow-y:auto;display:none;}
+  .pageov.open{display:block;}
+  .pageov-in{max-width:672px;margin:0 auto;padding:16px 16px 130px;}
+  .backpill{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:99px;padding:9px 16px;font-size:14px;font-weight:600;}
+  /* photo viewer */
+  .photoview{position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;padding:16px;}
+  .photoview.open{display:flex;}
+  .photoview .scrim{position:absolute;inset:0;background:rgba(0,0,0,.85);width:100%;height:100%;}
+  .photoview figure{position:relative;width:100%;max-width:512px;margin:0;}
+  .photoview img{width:100%;max-height:80vh;object-fit:contain;border-radius:16px;background:var(--surface);}
+  .photoview figcaption{text-align:center;font-size:13px;color:#f2eee6;margin-top:8px;}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:160px;z-index:90;background:#22222a;border:1px solid var(--gold);color:#f2eee6;padding:11px 18px;border-radius:24px;font-size:14px;display:none;max-width:88vw;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.5);}
+  .toast.show{display:block;}
+  .swatch{width:36px;height:36px;border-radius:50%;border:2px solid transparent;padding:0;min-height:36px;}
+  .swatch.on{border-color:var(--text);}
+  .statcard{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px;text-align:left;color:var(--text);width:100%;}
+  .pill-status{display:inline-flex;align-items:center;border-radius:99px;padding:4px 10px;font-size:11px;font-weight:600;white-space:nowrap;}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<div id="pageRoot"></div>
+<div id="sheetRoot"></div>
+<div id="photoRoot"></div>
+<button class="fab" id="fabAdd" aria-label="Add a new expense">+</button>
+<nav class="tabbar" aria-label="Main sections"><div class="tabbar-in" id="tabbar"></div></nav>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ============ STORAGE — this phone only (localStorage), fully offline ============ */
+var LS_KEY = "izhar_expense_tracker_offline_v2";
+var PALETTE = ["#C6A15B","#7A5FA0","#5B7C99","#3E7C6B","#B23A32","#8A6D3B","#4A6741","#946B54","#5F6CAF","#A05B7A"];
+var DEFAULT_CATS = [
+  { name:"Petrol", color:"#C6A15B" },
+  { name:"Food", color:"#3E7C6B" },
+  { name:"Clothing", color:"#7A5FA0" },
+  { name:"Other", color:"#5B7C99" }
+];
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+function seedDB(){
+  return {
+    v:2,
+    categories: DEFAULT_CATS.map(function(c){ return { id:uid(), name:c.name, color:c.color }; }),
+    expenses: [], funds: {}, budgets: {},
+    papaFunds: [], papaSpends: [], bills: []
+  };
+}
+var DB = seedDB();
+try {
+  var raw = localStorage.getItem(LS_KEY);
+  if (raw) { var p = JSON.parse(raw); if (p && p.v===2 && p.categories) DB = p; }
+} catch(e){}
+function save(){ try { localStorage.setItem(LS_KEY, JSON.stringify(DB)); } catch(e){ toast("Phone storage is full — try removing a bill photo."); } }
+
+/* ============ HELPERS (same rules as the online tracker) ============ */
+function pad(n){ return (n<10?"0":"")+n; }
+function dateStr(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+function todayStr(){ return dateStr(new Date()); }
+function currentMonthKey(){ return todayStr().slice(0,7); }
+function mkOf(ds){ return ds ? ds.slice(0,7) : ""; }
+function shiftMonthKey(mk, delta){
+  var p = mk.split("-"); var d = new Date(+p[0], +p[1]-1+delta, 1);
+  return d.getFullYear()+"-"+pad(d.getMonth()+1);
+}
+function monthLabel(mk){
+  var p = mk.split("-");
+  return new Date(+p[0], +p[1]-1, 1).toLocaleDateString("en-GB",{month:"long",year:"numeric"});
+}
+function monthShort(mk){
+  var p = mk.split("-");
+  return new Date(+p[0], +p[1]-1, 1).toLocaleDateString("en-GB",{month:"short"});
+}
+function dateLabel(ds){
+  if(!ds) return "";
+  var p = ds.split("-");
+  return new Date(+p[0], +p[1]-1, +p[2]).toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"});
+}
+function fmt(n){ return "Rs " + (+n||0).toLocaleString("en-US"); }
+function fmtCompact(n){
+  n = +n||0;
+  if (n >= 1000){ var v = n/1000; return (v % 1 === 0 ? v : v.toFixed(1)) + "k"; }
+  return String(n);
+}
+function signedFmt(n){
+  if (n > 0) return "+ " + fmt(n);
+  if (n < 0) return "− " + fmt(-n);
+  return fmt(0);
+}
+/* 200 of 45000 -> "0.4" (one decimal under 1%), otherwise whole numbers */
+function pctLabel(value, max){
+  if (max <= 0) return "0";
+  var pct = (value/max)*100;
+  if (pct > 0 && pct < 1) return pct.toFixed(1);
+  return String(Math.round(pct));
+}
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
+function toast(msg){
+  var t = document.getElementById("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(function(){ t.classList.remove("show"); }, 2400);
+}
+function catById(id){ for (var i=0;i<DB.categories.length;i++) if (DB.categories[i].id===id) return DB.categories[i]; return null; }
+function isOtherCat(c){ return c && c.name.trim().toLowerCase()==="other"; }
+function monogram(name, color, size){
+  size = size||40;
+  var letter = (String(name||"").trim().charAt(0) || "•").toUpperCase();
+  return '<span class="mono" aria-hidden="true" style="width:'+size+'px;height:'+size+'px;background:'+color+'26;color:'+color+';border:1px solid '+color+'66;font-size:'+Math.round(size*0.42)+'px;">'+esc(letter)+'</span>';
+}
+function methodBadge(method){
+  var online = method==="online";
+  var c = online ? "#3E7C6B" : "#C6A15B";
+  return '<span class="badge" style="background:'+c+'26;color:'+(online?"#3E7C6B":"var(--gold-deep)")+';border:1px solid '+c+'55;"><i style="background:'+c+';"></i>'+(online?"Online":"Cash")+'</span>';
+}
+function progressBar(value, max, color){
+  var pct = max>0 ? Math.min(100, value/max*100) : 0;
+  var over = max>0 && value>max;
+  return '<div class="prog" role="progressbar"><i style="width:'+pct+'%;background:'+(over?"var(--danger)":color)+';"></i></div>';
+}
+function monthSwitcherHTML(mk){
+  return '<div class="mswitch"><button class="arrow" data-mshift="-1" aria-label="Previous month">‹</button>'+
+    '<span class="mlabel font-display">'+esc(monthLabel(mk))+'</span>'+
+    '<button class="arrow" data-mshift="1" aria-label="Next month">›</button></div>';
+}
+function wireMonthSwitcher(root){
+  root.querySelectorAll("[data-mshift]").forEach(function(b){
+    b.addEventListener("click", function(){
+      state.month = shiftMonthKey(state.month, +b.getAttribute("data-mshift"));
+      state.calDate = state.month+"-01";
+      state.calYear = +state.month.slice(0,4);
+      render();
+    });
+  });
+}
+
+/* ============ COMPUTATIONS ============ */
+function fundOf(mk){ return +((DB.funds||{})[mk]) || 0; }
+function ownSpent(mk){ var t=0; DB.expenses.forEach(function(e){ if(mkOf(e.date)===mk) t+=+e.amount||0; }); return t; }
+function papaReceived(mk){ var t=0; DB.papaFunds.forEach(function(f){ if(mkOf(f.date)===mk) t+=+f.amount||0; }); return t; }
+function papaSpentMonth(mk){ var t=0; DB.papaSpends.forEach(function(s){ if(mkOf(s.date)===mk) t+=+s.amount||0; }); return t; }
+function fundSpentTotal(fundId){ var t=0; DB.papaSpends.forEach(function(s){ if(s.fundId===fundId) t+=+s.amount||0; }); return t; }
+function allDataMonths(){
+  var s = {};
+  DB.expenses.forEach(function(e){ s[mkOf(e.date)]=1; });
+  DB.papaFunds.forEach(function(f){ s[mkOf(f.date)]=1; });
+  DB.papaSpends.forEach(function(x){ s[mkOf(x.date)]=1; });
+  Object.keys(DB.funds||{}).forEach(function(k){ s[k]=1; });
+  Object.keys(DB.budgets||{}).forEach(function(k){ s[k]=1; });
+  return Object.keys(s).sort();
+}
+/* leftover of own money from all months before mk (can be negative, like the online tracker) */
+function ownCarry(mk){
+  var months = allDataMonths(); if(!months.length) return 0;
+  var cur = months[0]; if (cur >= mk) return 0;
+  var carry = 0, guard = 0;
+  while (cur < mk && guard < 1200){
+    carry = fundOf(cur) + carry - ownSpent(cur);
+    cur = shiftMonthKey(cur, 1); guard++;
+  }
+  return carry;
+}
+/* Papa's leftover from all months before mk — tracked separately, like the online tracker */
+function papaCarry(mk){
+  var months = allDataMonths(); if(!months.length) return 0;
+  var cur = months[0]; if (cur >= mk) return 0;
+  var bal = 0, guard = 0;
+  while (cur < mk && guard < 1200){
+    bal = bal + papaReceived(cur) - papaSpentMonth(cur);
+    cur = shiftMonthKey(cur, 1); guard++;
+  }
+  return bal;
+}
+function monthNumbers(mk){
+  var fund = fundOf(mk), oc = ownCarry(mk), pc = papaCarry(mk);
+  var pr = papaReceived(mk), ps = papaSpentMonth(mk), os = ownSpent(mk);
+  var ownStarting = fund + oc;
+  var papaAvailable = pc + pr;
+  var starting = ownStarting + papaAvailable;
+  var totalSpent = os + ps;
+  return {
+    fund:fund, ownCarry:oc, papaCarry:pc, papaReceived:pr, papaSpent:ps, ownSpent:os,
+    ownStarting:ownStarting, papaAvailable:papaAvailable, starting:starting,
+    totalSpent:totalSpent, remaining: starting - totalSpent,
+    papaBalance: papaAvailable - ps,
+    hasBudget: fund>0 || oc!==0 || papaAvailable!==0,
+    hasPapa: pr>0 || ps>0 || papaAvailable!==0
+  };
+}
+function catBudget(mk, catId){
+  var b = (DB.budgets||{})[mk] || {};
+  return +b[catId] || 0;
+}
+function catSpentMonth(mk, catId){
+  var t=0; DB.expenses.forEach(function(e){ if(e.catId===catId && mkOf(e.date)===mk) t+=+e.amount||0; }); return t;
+}
+function catCountMonth(mk, catId){
+  var t=0; DB.expenses.forEach(function(e){ if(e.catId===catId && mkOf(e.date)===mk) t++; }); return t;
+}
+function subBreakdown(mk, catId){
+  var map = {}, order = [];
+  DB.expenses.forEach(function(e){
+    if (e.catId!==catId || mkOf(e.date)!==mk) return;
+    var name = (e.sub||"").trim(); if(!name) return;
+    var key = name.toLowerCase();
+    if(!map[key]){ map[key] = { name:name, spent:0, count:0 }; order.push(key); }
+    map[key].spent += +e.amount||0; map[key].count++;
+  });
+  return order.map(function(k){ return map[k]; }).sort(function(a,b){ return b.spent-a.spent; });
+}
+function sortedExpenses(list){
+  return list.slice().sort(function(a,b){
+    if (a.date!==b.date) return a.date<b.date ? 1 : -1;
+    return 0;
+  });
+}
+
+/* ============ APP STATE ============ */
+var state = {
+  tab: "dashboard",
+  month: currentMonthKey(),
+  calDate: todayStr(),
+  calYear: new Date().getFullYear(),
+  tx: { q:"", method:"all", catId:null, scope:"month" },
+  catPage: null,
+  bannerDismissed: false
+};
+if (mkOf(state.calDate) !== state.month) state.calDate = state.month + "-01";
+
+/* ============ EXPENSE ROW (tappable -> edit sheet, like the online tracker) ============ */
+function expenseRowHTML(e, showDate){
+  var c = catById(e.catId);
+  var name = c ? c.name : "Expense";
+  var color = c ? c.color : "#C6A15B";
+  var subParts = [];
+  if (e.sub) subParts.push(e.sub);
+  if (e.payee) subParts.push("Paid to " + e.payee);
+  if (e.note) subParts.push(e.note);
+  var sub = subParts.join(" · ");
+  var html = '<button type="button" class="erow" data-edit-exp="'+e.id+'" aria-label="Edit '+esc(name)+' expense of '+esc(fmt(e.amount))+'">'+
+    monogram(name, color, 40)+
+    '<span style="flex:1;min-width:0;">'+
+      '<span style="display:flex;align-items:center;gap:8px;"><span style="font-size:15px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(name)+'</span>'+methodBadge(e.method)+'</span>'+
+      (sub ? '<span style="display:block;font-size:13px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(sub)+'</span>' : (showDate===false ? '' : '<span style="display:block;font-size:13px;color:var(--dim);">'+esc(dateLabel(e.date))+'</span>'))+
+      (sub && showDate!==false ? '<span style="display:block;font-size:12px;color:var(--dim);">'+esc(dateLabel(e.date))+'</span>' : '')+
+    '</span>'+
+    '<span class="money" style="font-size:15px;font-weight:600;">'+esc(fmt(e.amount))+'</span>'+
+  '</button>';
+  return html;
+}
+function wireExpenseRows(root){
+  root.querySelectorAll("[data-edit-exp]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var e = null;
+      DB.expenses.forEach(function(x){ if (x.id===b.getAttribute("data-edit-exp")) e = x; });
+      if (e) openExpenseSheet({ mode:"edit", expense:e });
+    });
+  });
+}
+function emptyNote(text){
+  return '<p class="empty">'+esc(text)+'</p>';
+}
+
+/* ============ SHEETS ============ */
+function openSheet(html){
+  var root = document.getElementById("sheetRoot");
+  root.innerHTML = '<div class="sheetwrap open"><button class="scrim" data-close-sheet aria-label="Close"></button><div class="sheet">'+html+'</div></div>';
+  root.querySelector("[data-close-sheet]").addEventListener("click", closeSheet);
+}
+function closeSheet(){ document.getElementById("sheetRoot").innerHTML = ""; }
+function sheetHead(title, sub){
+  return '<div class="grab"></div><h2 class="font-display">'+esc(title)+'</h2>'+(sub?'<p class="small dim" style="margin-top:4px;">'+esc(sub)+'</p>':"");
+}
+
+/* ----- Add / Edit expense ----- */
+function openExpenseSheet(st){
+  var editing = st.mode==="edit" ? st.expense : null;
+  var catId = editing ? editing.catId : (st.categoryId || (DB.categories[0] ? DB.categories[0].id : ""));
+  var html = sheetHead(editing ? "Edit Expense" : "New Expense") +
+    '<label class="fldlbl" for="exAmount">Amount (Rs)</label>'+
+    '<input class="amtinput" id="exAmount" type="number" inputmode="numeric" placeholder="0" value="'+(editing?editing.amount:"")+'">'+
+    '<p class="fldlbl">Category</p><div class="catchips" id="exCats">'+
+      DB.categories.map(function(c){
+        var active = c.id===catId;
+        return '<button type="button" class="catchip" data-cat="'+c.id+'" aria-pressed="'+active+'" style="background:'+(active?c.color:"var(--surface-alt)")+';color:'+(active?"#141310":"var(--text)")+';border:1px solid '+c.color+';">'+esc(c.name)+'</button>';
+      }).join("")+
+    '</div>'+
+    '<div id="exSubWrap"></div>'+
+    '<p class="fldlbl">Payment method — Cash or Online?</p>'+
+    '<div class="seg2" id="exMethod">'+
+      '<button type="button" data-m="cash">Cash</button><button type="button" data-m="online">Online</button>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'+
+      '<div><label class="fldlbl" for="exPayee">Paid to (name)</label><input id="exPayee" type="text" placeholder="e.g. Petrol pump, Ahmed" value="'+(editing?esc(editing.payee||""):"")+'"></div>'+
+      '<div><label class="fldlbl" for="exDate">Date</label><input id="exDate" type="date" value="'+(editing?editing.date:(st.date||todayStr()))+'"></div>'+
+    '</div>'+
+    '<label class="fldlbl" for="exNote">Note (optional)</label>'+
+    '<input id="exNote" type="text" placeholder="What was it for?" value="'+(editing?esc(editing.note||""):"")+'">'+
+    '<p class="err" id="exErr" role="alert"></p>'+
+    '<button class="btn-gold" id="exSave" style="margin-top:20px;">'+(editing?"Save Changes":"Add Expense")+'</button>'+
+    (editing ? '<button class="delbtn2" id="exDelete">Delete this expense</button>' : '')+
+    '<div style="height:8px;"></div>';
+  openSheet(html);
+  var form = { catId: catId, method: editing ? editing.method : "cash", sub: editing ? (editing.sub||"") : "" };
+  function paintMethod(){
+    document.querySelectorAll("#exMethod button").forEach(function(b){
+      b.classList.toggle("on", b.getAttribute("data-m")===form.method);
+    });
+  }
+  paintMethod();
+  document.querySelectorAll("#exMethod button").forEach(function(b){
+    b.addEventListener("click", function(){ form.method = b.getAttribute("data-m"); paintMethod(); });
+  });
+  function paintSub(){
+    var wrap = document.getElementById("exSubWrap");
+    var c = catById(form.catId);
+    if (!isOtherCat(c)){ wrap.innerHTML = ""; return; }
+    var sugg = [];
+    var seen = {};
+    DB.expenses.forEach(function(e){
+      if (e.catId===c.id && (e.sub||"").trim()){
+        var k = e.sub.trim().toLowerCase();
+        if (!seen[k]){ seen[k]=1; sugg.push(e.sub.trim()); }
+      }
+    });
+    sugg.sort();
+    wrap.innerHTML =
+      '<label class="fldlbl" for="exSub">Custom sub-category — your own criterion</label>'+
+      '<input id="exSub" type="text" placeholder="e.g. Board refill, Haircut, Gifts" list="exSubList" value="'+esc(form.sub)+'">'+
+      '<datalist id="exSubList">'+sugg.map(function(s){ return '<option value="'+esc(s)+'">'; }).join("")+'</datalist>'+
+      '<p class="xsmall dim" style="margin-top:6px;">Anything that does not fit Petrol, Food or Clothing — give it its own name here and it will be tracked separately inside Other, in totals and in the Month Summary.</p>'+
+      (sugg.length ? '<div class="catchips">'+sugg.map(function(s){
+          var active = form.sub.trim().toLowerCase()===s.toLowerCase();
+          return '<button type="button" class="chip" data-sub="'+esc(s)+'" aria-pressed="'+active+'" style="'+(active?"background:var(--gold);color:#141310;border-color:var(--gold);":"")+'">'+esc(s)+'</button>';
+        }).join("")+'</div>' : '');
+    var inp = document.getElementById("exSub");
+    inp.addEventListener("input", function(){ form.sub = inp.value; });
+    wrap.querySelectorAll("[data-sub]").forEach(function(b){
+      b.addEventListener("click", function(){ form.sub = b.getAttribute("data-sub"); paintSub(); });
+    });
+  }
+  paintSub();
+  document.querySelectorAll("#exCats [data-cat]").forEach(function(b){
+    b.addEventListener("click", function(){
+      form.catId = b.getAttribute("data-cat");
+      document.querySelectorAll("#exCats [data-cat]").forEach(function(x){
+        var c2 = catById(x.getAttribute("data-cat"));
+        var active = x===b;
+        x.setAttribute("aria-pressed", active);
+        x.style.background = active ? c2.color : "var(--surface-alt)";
+        x.style.color = active ? "#141310" : "var(--text)";
+      });
+      paintSub();
+    });
+  });
+  var delArmed = false;
+  var delBtn = document.getElementById("exDelete");
+  if (delBtn){
+    delBtn.addEventListener("click", function(){
+      if (!delArmed){ delArmed = true; delBtn.textContent = "Tap again to confirm delete"; return; }
+      DB.expenses = DB.expenses.filter(function(x){ return x.id!==editing.id; });
+      save(); closeSheet(); render(); toast("Expense deleted.");
+    });
+  }
+  document.getElementById("exSave").addEventListener("click", function(){
+    var err = document.getElementById("exErr");
+    var amount = parseFloat(document.getElementById("exAmount").value);
+    var date = document.getElementById("exDate").value;
+    if (!amount || amount<=0){ err.textContent = "Please enter the amount — how much did you spend?"; return; }
+    if (!form.catId){ err.textContent = "Please choose a category."; return; }
+    if (!date){ err.textContent = "Please choose a date."; return; }
+    var c = catById(form.catId);
+    var subVal = isOtherCat(c) ? (document.getElementById("exSub") ? document.getElementById("exSub").value.trim() : form.sub.trim()) : "";
+    var payload = {
+      catId: form.catId, amount: amount, date: date,
+      payee: document.getElementById("exPayee").value.trim(),
+      note: document.getElementById("exNote").value.trim(),
+      sub: subVal, method: form.method
+    };
+    if (editing){
+      DB.expenses.forEach(function(x){ if (x.id===editing.id){ for (var k in payload) x[k]=payload[k]; } });
+    } else {
+      payload.id = uid();
+      DB.expenses.push(payload);
+    }
+    save(); closeSheet();
+    state.month = mkOf(date);
+    render(); toast(editing ? "Expense updated. ✓" : "Expense saved on this phone. ✓");
+  });
+}
+
+/* ----- Starting budget (fund) sheet ----- */
+function openFundSheet(){
+  var mk = state.month;
+  var cur = fundOf(mk);
+  var html = sheetHead(monthLabel(mk)+" — Starting Budget",
+    "How much money do you have for this month in total (salary / pocket money combined)? Anything left over from last month is added on top automatically as carry-forward.") +
+    '<label class="fldlbl" for="fundAmount">Amount (Rs)</label>'+
+    '<input class="amtinput" id="fundAmount" type="number" inputmode="numeric" placeholder="0" value="'+(cur>0?cur:"")+'">'+
+    '<p class="err" id="fundErr" role="alert"></p>'+
+    '<button class="btn-gold" id="fundSave" style="margin-top:20px;">Save</button><div style="height:8px;"></div>';
+  openSheet(html);
+  document.getElementById("fundSave").addEventListener("click", function(){
+    var v = parseFloat(document.getElementById("fundAmount").value) || 0;
+    if (v < 0){ document.getElementById("fundErr").textContent = "Please enter 0 or more."; return; }
+    if (!DB.funds) DB.funds = {};
+    DB.funds[mk] = v;
+    save(); closeSheet(); render(); toast("Starting budget saved. ✓");
+  });
+}
+
+/* ============ PAPA SHEETS ============ */
+function papaStatus(f){
+  var sp = fundSpentTotal(f.id);
+  if (sp <= 0) return { key:"not", label:"Not spent yet", color:"#5B7C99" };
+  if (sp < (+f.amount||0)) return { key:"part", label:"Partly spent", color:"#C6A15B" };
+  return { key:"full", label:"Fully spent", color:"#3E7C6B" };
+}
+function openPapaFundSheet(st){
+  var editing = st.mode==="edit" ? st.fund : null;
+  var html = sheetHead(editing ? "Edit — Papa Gave" : "Papa Gave Money",
+    "Record what Papa gave and what it was for. It is added to your total budget and tracked separately in Papa's account.") +
+    '<label class="fldlbl" for="pfAmount">Amount Papa gave (Rs)</label>'+
+    '<input class="amtinput" id="pfAmount" type="number" inputmode="numeric" placeholder="0" value="'+(editing?editing.amount:"")+'">'+
+    '<label class="fldlbl" for="pfPurpose">Given for — which work / purpose?</label>'+
+    '<input id="pfPurpose" type="text" placeholder="e.g. Pay the plumber, House paint, Car repair" value="'+(editing?esc(editing.purpose||""):"")+'">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'+
+      '<div><label class="fldlbl" for="pfDate">Date Papa gave it</label><input id="pfDate" type="date" value="'+(editing?editing.date:todayStr())+'"></div>'+
+      '<div><label class="fldlbl" for="pfNote">Note (optional)</label><input id="pfNote" type="text" placeholder="Cash / transferred…" value="'+(editing?esc(editing.note||""):"")+'"></div>'+
+    '</div>'+
+    (editing ? '<p class="small dim" style="margin-top:14px;">Already spent from this amount: '+esc(fmt(fundSpentTotal(editing.id)))+' · Left: '+esc(fmt((+editing.amount||0)-fundSpentTotal(editing.id)))+' · '+esc(papaStatus(editing).label)+'</p>' : '')+
+    '<p class="err" id="pfErr" role="alert"></p>'+
+    '<button class="btn-gold" id="pfSave" style="margin-top:20px;">'+(editing?"Save Changes":"Add to Papa's Account")+'</button>'+
+    (editing ? '<button class="delbtn2" id="pfDelete">Delete this record</button>' : '')+
+    '<div style="height:8px;"></div>';
+  openSheet(html);
+  var delArmed = false;
+  var delBtn = document.getElementById("pfDelete");
+  if (delBtn){
+    delBtn.addEventListener("click", function(){
+      if (!delArmed){ delArmed = true; delBtn.textContent = "Tap again to confirm delete"; return; }
+      DB.papaSpends.forEach(function(s){ if (s.fundId===editing.id) s.fundId = null; });
+      DB.papaFunds = DB.papaFunds.filter(function(x){ return x.id!==editing.id; });
+      save(); closeSheet(); render(); toast("Papa's record deleted.");
+    });
+  }
+  document.getElementById("pfSave").addEventListener("click", function(){
+    var err = document.getElementById("pfErr");
+    var amount = parseFloat(document.getElementById("pfAmount").value);
+    var purpose = document.getElementById("pfPurpose").value.trim();
+    var date = document.getElementById("pfDate").value;
+    if (!amount || amount<=0){ err.textContent = "Please enter the amount — how much did Papa give?"; return; }
+    if (!purpose){ err.textContent = "Please write what Papa gave this money for — which work or purpose?"; return; }
+    if (!date){ err.textContent = "Please choose the date Papa gave it."; return; }
+    var payload = { amount:amount, purpose:purpose, note:document.getElementById("pfNote").value.trim(), date:date };
+    if (editing){ DB.papaFunds.forEach(function(x){ if (x.id===editing.id){ for (var k in payload) x[k]=payload[k]; } }); }
+    else { payload.id = uid(); DB.papaFunds.push(payload); }
+    save(); closeSheet(); state.month = mkOf(date); render(); toast("Papa's money saved. ✓");
+  });
+}
+function openPapaSpendSheet(st){
+  var editing = st.mode==="edit" ? st.spend : null;
+  var funds = DB.papaFunds.slice().sort(function(a,b){ return a.date<b.date?1:-1; });
+  var selFund = editing ? editing.fundId : (st.fundId || null);
+  var html = sheetHead(editing ? "Edit — Spent from Papa's Money" : "Spent from Papa's Money",
+    "Record what you spent on the work Papa asked for, out of the money he gave.") +
+    '<label class="fldlbl" for="psAmount">Amount spent (Rs)</label>'+
+    '<input class="amtinput" id="psAmount" type="number" inputmode="numeric" placeholder="0" value="'+(editing?editing.amount:"")+'">'+
+    '<p class="fldlbl">Spent from which amount Papa gave?</p>'+
+    '<div id="psFunds" style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">'+
+      '<button type="button" data-fund="" class="psfund" style="border-radius:12px;padding:13px 16px;text-align:left;font-size:14px;font-weight:500;border:1px solid var(--border);">Papa\'s money in general (not one specific amount)</button>'+
+      funds.map(function(f){
+        var left = (+f.amount||0) - fundSpentTotal(f.id) + (editing && editing.fundId===f.id ? +editing.amount||0 : 0);
+        return '<button type="button" data-fund="'+f.id+'" class="psfund" style="border-radius:12px;padding:13px 16px;text-align:left;border:1px solid var(--border);">'+
+          '<span style="display:block;font-size:14px;font-weight:600;">'+esc(f.purpose||"Papa's money")+'</span>'+
+          '<span style="display:block;font-size:12px;" class="pssub">Papa gave '+esc(fmt(f.amount))+' on '+esc(dateLabel(f.date))+' · '+esc(fmt(left))+' left</span></button>';
+      }).join("")+
+    '</div>'+
+    '<p class="xsmall dim" id="psFundNote" style="margin-top:8px;"></p>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'+
+      '<div><label class="fldlbl" for="psNote">Spent on what?</label><input id="psNote" type="text" placeholder="e.g. Plumber\'s labour" value="'+(editing?esc(editing.note||""):"")+'"></div>'+
+      '<div><label class="fldlbl" for="psDate">Date</label><input id="psDate" type="date" value="'+(editing?editing.date:todayStr())+'"></div>'+
+    '</div>'+
+    '<p class="err" id="psErr" role="alert"></p>'+
+    '<button class="btn-gold" id="psSave" style="margin-top:20px;">'+(editing?"Save Changes":"Add Spend")+'</button>'+
+    (editing ? '<button class="delbtn2" id="psDelete">Delete this spend</button>' : '')+
+    '<div style="height:8px;"></div>';
+  openSheet(html);
+  function paintFunds(){
+    document.querySelectorAll("#psFunds .psfund").forEach(function(b){
+      var active = (b.getAttribute("data-fund")||null) === selFund || ((b.getAttribute("data-fund")||"") === "" && !selFund);
+      b.style.background = active ? "var(--gold)" : "var(--surface-alt)";
+      b.style.color = active ? "#141310" : "var(--text)";
+      var sub = b.querySelector(".pssub");
+      if (sub) sub.style.color = active ? "#141310" : "var(--dim)";
+    });
+    var note = document.getElementById("psFundNote");
+    if (selFund){
+      var f = null; funds.forEach(function(x){ if (x.id===selFund) f = x; });
+      if (f){
+        var left = (+f.amount||0) - fundSpentTotal(f.id) + (editing && editing.fundId===f.id ? +editing.amount||0 : 0);
+        note.textContent = fmt(left) + " is left from this amount — a spend bigger than that cannot be saved against it.";
+      } else note.textContent = "";
+    } else note.textContent = "";
+  }
+  paintFunds();
+  document.querySelectorAll("#psFunds .psfund").forEach(function(b){
+    b.addEventListener("click", function(){
+      var v = b.getAttribute("data-fund");
+      selFund = v ? v : null;
+      paintFunds();
+    });
+  });
+  var delArmed = false;
+  var delBtn = document.getElementById("psDelete");
+  if (delBtn){
+    delBtn.addEventListener("click", function(){
+      if (!delArmed){ delArmed = true; delBtn.textContent = "Tap again to confirm delete"; return; }
+      DB.papaSpends = DB.papaSpends.filter(function(x){ return x.id!==editing.id; });
+      save(); closeSheet(); render(); toast("Spend deleted.");
+    });
+  }
+  document.getElementById("psSave").addEventListener("click", function(){
+    var err = document.getElementById("psErr");
+    var amount = parseFloat(document.getElementById("psAmount").value);
+    var date = document.getElementById("psDate").value;
+    if (!amount || amount<=0){ err.textContent = "Please enter the amount — how much of Papa's money was spent?"; return; }
+    if (!date){ err.textContent = "Please choose a date."; return; }
+    if (selFund){
+      var f = null; DB.papaFunds.forEach(function(x){ if (x.id===selFund) f = x; });
+      if (f){
+        var left = (+f.amount||0) - fundSpentTotal(f.id) + (editing && editing.fundId===f.id ? +editing.amount||0 : 0);
+        if (amount > left){ err.textContent = "That is more than the " + fmt(left) + " left from this amount. Lower the spend or choose Papa's money in general."; return; }
+      }
+    }
+    var payload = { fundId: selFund, amount: amount, note: document.getElementById("psNote").value.trim(), date: date };
+    if (editing){ DB.papaSpends.forEach(function(x){ if (x.id===editing.id){ for (var k in payload) x[k]=payload[k]; } }); }
+    else { payload.id = uid(); DB.papaSpends.push(payload); }
+    save(); closeSheet(); state.month = mkOf(date); render(); toast("Spend from Papa's money saved. ✓");
+  });
+}
+
+/* ============ BILLS: helpers ============ */
+var BILL_KINDS = [
+  { id:"ptcl", label:"PTCL", color:"#B23A32" },
+  { id:"electricity", label:"Electricity", color:"#C6A15B" },
+  { id:"gas", label:"Gas", color:"#3E7C6B" },
+  { id:"water", label:"Water", color:"#5B7C99" },
+  { id:"other", label:"Other", color:"#7A5FA0" }
+];
+function billKind(k){ for (var i=0;i<BILL_KINDS.length;i++) if (BILL_KINDS[i].id===k) return BILL_KINDS[i]; return BILL_KINDS[4]; }
+function billLabel(b){ return b.kind==="other" ? ((b.name||"").trim() || "Bill") : billKind(b.kind).label; }
+function daysUntil(ds){
+  var p = ds.split("-"); var due = new Date(+p[0], +p[1]-1, +p[2]);
+  var n = new Date(); var t0 = new Date(n.getFullYear(), n.getMonth(), n.getDate());
+  return Math.round((due - t0)/86400000);
+}
+function billCountdown(b){
+  if (b.paid) return { text:"Paid", tone:"paid" };
+  var d = daysUntil(b.due);
+  if (d < 0) return { text:"Overdue by "+(-d)+((-d)===1?" day":" days"), tone:"overdue" };
+  if (d === 0) return { text:"Due today", tone:"today" };
+  if (d === 1) return { text:"1 day left", tone:"soon" };
+  return { text:d+" days left", tone: d<=3 ? "soon" : "ok" };
+}
+function billReminderText(b){
+  if (b.paid) return null;
+  var d = daysUntil(b.due);
+  if (d < 0) return "Reminder: this bill is overdue — it was due on " + dateLabel(b.due) + ".";
+  if (d === 0) return "Reminder: this bill is due today.";
+  if (d === 1) return "Reminder: this bill is due tomorrow — 1 day to go.";
+  if (d === 3) return "Reminder: this bill is due in 3 days.";
+  return null;
+}
+/* Bills that must trigger the top push-style banner: due in 3 days, in 1 day, today, or overdue */
+function bannerBills(){
+  return DB.bills.filter(function(b){
+    if (b.paid) return false;
+    var d = daysUntil(b.due);
+    return d===3 || d===1 || d===0 || d<0;
+  }).sort(function(a,b){ return a.due<b.due ? -1 : 1; });
+}
+
+/* ============ BILL SHEET ============ */
+var billPhotoData = null; /* null = keep existing (edit) / none (add); "" = removed; dataURL = new */
+function openBillSheet(st){
+  var editing = st.mode==="edit" ? st.bill : null;
+  billPhotoData = null;
+  var kind = editing ? editing.kind : "ptcl";
+  var html = sheetHead(editing ? "Edit Bill" : "Add a Bill",
+    "You add bills yourself here — type, amount and due date. The app counts down to the due date and reminds you 3 days before, 1 day before and on the due date. Bills are not fetched automatically from PTCL or any other company.") +
+    '<p class="fldlbl">Bill type</p><div class="catchips" id="blKinds">'+
+      BILL_KINDS.map(function(k){
+        var active = k.id===kind;
+        return '<button type="button" class="catchip" data-kind="'+k.id+'" aria-pressed="'+active+'" style="background:'+(active?k.color:"var(--surface-alt)")+';color:'+(active?"#141310":"var(--text)")+';border:1px solid '+k.color+';">'+k.label+'</button>';
+      }).join("")+
+    '</div>'+
+    '<div id="blNameWrap"></div>'+
+    '<label class="fldlbl" for="blAmount">Amount (Rs)</label>'+
+    '<input class="amtinput" id="blAmount" type="number" inputmode="numeric" placeholder="0" value="'+(editing?editing.amount:"")+'">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'+
+      '<div><label class="fldlbl" for="blDue">Due date</label><input id="blDue" type="date" value="'+(editing?editing.due:todayStr())+'"></div>'+
+      '<div><label class="fldlbl" for="blNote">Note (optional)</label><input id="blNote" type="text" placeholder="Bill / consumer no.…" value="'+(editing?esc(editing.note||""):"")+'"></div>'+
+    '</div>'+
+    '<p class="fldlbl">Bill photo / screenshot (optional)</p>'+
+    '<div id="blPhotoZone"></div>'+
+    '<p class="err" id="blErr" role="alert"></p>'+
+    '<button class="btn-gold" id="blSave" style="margin-top:20px;">'+(editing?"Save Changes":"Add Bill")+'</button>'+
+    (editing ? '<button class="delbtn2" id="blDelete">Delete this bill</button>' : '')+
+    '<div style="height:8px;"></div>';
+  openSheet(html);
+  function paintName(){
+    var w = document.getElementById("blNameWrap");
+    if (kind==="other"){
+      w.innerHTML = '<label class="fldlbl" for="blName">Bill name</label><input id="blName" type="text" placeholder="e.g. Internet, Rent, Mobile package" value="'+(editing?esc(editing.name||""):"")+'">';
+    } else w.innerHTML = "";
+  }
+  paintName();
+  document.querySelectorAll("#blKinds [data-kind]").forEach(function(b){
+    b.addEventListener("click", function(){
+      kind = b.getAttribute("data-kind");
+      document.querySelectorAll("#blKinds [data-kind]").forEach(function(x){
+        var k2 = billKind(x.getAttribute("data-kind"));
+        var active = x===b;
+        x.setAttribute("aria-pressed", active);
+        x.style.background = active ? k2.color : "var(--surface-alt)";
+        x.style.color = active ? "#141310" : "var(--text)";
+      });
+      paintName();
+    });
+  });
+  function currentPhoto(){
+    if (billPhotoData !== null) return billPhotoData;
+    return editing ? (editing.photo||"") : "";
+  }
+  function paintPhoto(){
+    var z = document.getElementById("blPhotoZone");
+    var ph = currentPhoto();
+    var h = "";
+    if (ph){
+      h += '<img src="'+ph+'" alt="Bill photo" style="width:100%;max-height:224px;object-fit:contain;border-radius:12px;background:var(--surface-alt);border:1px solid var(--border);">';
+    } else {
+      h += '<p class="xsmall dim" style="margin-top:6px;">Attach a photo or screenshot of the bill — it stays saved with this bill on this phone so you can see it any time. The amount and due date above are what the countdown uses.</p>';
+    }
+    h += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">'+
+      '<label class="btn-pill" style="display:inline-flex;align-items:center;min-height:44px;">📷 '+(ph?"Change photo":"Attach bill photo")+'<input type="file" id="blFile" accept="image/*" style="display:none;"></label>'+
+      (ph ? '<button type="button" class="btn-pill" id="blRemovePhoto" style="border-color:var(--danger);color:var(--danger);">Remove photo</button>' : '')+
+    '</div>';
+    z.innerHTML = h;
+    var file = document.getElementById("blFile");
+    file.addEventListener("change", function(){
+      var f = file.files && file.files[0];
+      if (!f) return;
+      if (f.type.indexOf("image/")!==0){ document.getElementById("blErr").textContent = "Please choose a photo or screenshot image of the bill."; return; }
+      var reader = new FileReader();
+      reader.onload = function(){
+        var img = new Image();
+        img.onload = function(){
+          var max = 900, w = img.width, h2 = img.height;
+          if (w > max){ h2 = Math.round(h2*max/w); w = max; }
+          if (h2 > max){ w = Math.round(w*max/h2); h2 = max; }
+          var cv = document.createElement("canvas"); cv.width = w; cv.height = h2;
+          cv.getContext("2d").drawImage(img, 0, 0, w, h2);
+          billPhotoData = cv.toDataURL("image/jpeg", 0.72);
+          paintPhoto();
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(f);
+    });
+    var rm = document.getElementById("blRemovePhoto");
+    if (rm) rm.addEventListener("click", function(){ billPhotoData = ""; paintPhoto(); });
+  }
+  paintPhoto();
+  var delArmed = false;
+  var delBtn = document.getElementById("blDelete");
+  if (delBtn){
+    delBtn.addEventListener("click", function(){
+      if (!delArmed){ delArmed = true; delBtn.textContent = "Tap again to confirm delete"; return; }
+      DB.bills = DB.bills.filter(function(x){ return x.id!==editing.id; });
+      save(); closeSheet(); render(); toast("Bill deleted.");
+    });
+  }
+  document.getElementById("blSave").addEventListener("click", function(){
+    var err = document.getElementById("blErr");
+    var amount = parseFloat(document.getElementById("blAmount").value);
+    var due = document.getElementById("blDue").value;
+    var name = kind==="other" ? (document.getElementById("blName") ? document.getElementById("blName").value.trim() : "") : "";
+    if (!amount || amount<=0){ err.textContent = "Please enter the bill amount."; return; }
+    if (kind==="other" && !name){ err.textContent = "Please write the bill's name — for example Internet, Mobile load, Rent."; return; }
+    if (!due){ err.textContent = "Please choose the due date."; return; }
+    var payload = { kind:kind, name:name, amount:amount, due:due, note:document.getElementById("blNote").value.trim(), photo: currentPhoto() };
+    if (editing){ DB.bills.forEach(function(x){ if (x.id===editing.id){ for (var k in payload) x[k]=payload[k]; } }); }
+    else { payload.id = uid(); payload.paid = false; payload.paidDate = ""; DB.bills.push(payload); }
+    save(); closeSheet(); render(); toast("Bill saved. ✓");
+  });
+}
+
+/* ============ CATEGORY PAGE (full screen) ============ */
+function openCategoryPage(catId, sub){
+  state.catPage = { catId: catId, sub: sub || null };
+  renderCategoryPage();
+  document.getElementById("pageRoot").firstChild.classList.add("open");
+}
+function closeCategoryPage(){
+  state.catPage = null;
+  document.getElementById("pageRoot").innerHTML = "";
+  render();
+}
+function renderCategoryPage(){
+  var cp = state.catPage;
+  if (!cp) return;
+  var c = catById(cp.catId);
+  if (!c){ document.getElementById("pageRoot").innerHTML = ""; return; }
+  var mk = state.month;
+  var all = sortedExpenses(DB.expenses.filter(function(e){ return e.catId===c.id && mkOf(e.date)===mk; }));
+  var isOther = isOtherCat(c);
+  var subs = isOther ? subBreakdown(mk, c.id) : [];
+  var visible = cp.sub ? all.filter(function(e){ return (e.sub||"").trim().toLowerCase()===cp.sub.trim().toLowerCase(); }) : all;
+  var vTotal = 0; visible.forEach(function(e){ vTotal += +e.amount||0; });
+  var budget = catBudget(mk, c.id);
+  var heading = cp.sub || c.name;
+  /* day groups */
+  var groups = [];
+  visible.forEach(function(e){
+    var last = groups[groups.length-1];
+    if (last && last.date===e.date){ last.items.push(e); last.total += +e.amount||0; }
+    else groups.push({ date:e.date, total:+e.amount||0, items:[e] });
+  });
+  var html = '<div class="pageov"><div class="pageov-in">'+
+    '<button class="backpill" id="cpBack">‹ Back</button>'+
+    '<div style="display:flex;align-items:center;gap:12px;margin-top:16px;">'+
+      monogram(c.name, c.color, 52)+
+      '<div style="flex:1;min-width:0;"><h2 class="font-display" style="font-size:24px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(heading)+'</h2>'+
+      '<p class="small dim">'+esc(monthLabel(mk))+' · '+visible.length+(visible.length===1?" transaction":" transactions")+(cp.sub ? " in "+esc(c.name) : "")+'</p></div>'+
+      '<p class="money font-display" style="font-size:24px;color:var(--gold-deep);">'+esc(fmt(vTotal))+'</p>'+
+    '</div>'+
+    (!cp.sub && budget>0 ?
+      '<div style="margin-top:16px;">'+progressBar(vTotal, budget, c.color)+
+      '<p class="small dim" style="margin-top:8px;">Budget '+esc(fmt(budget))+(vTotal>budget ? " — "+esc(fmt(vTotal-budget))+" over budget" : " — "+esc(fmt(budget-vTotal))+" left")+'</p></div>' : '')+
+    (isOther && subs.length ?
+      '<div style="margin-top:16px;"><h3 style="font-size:13px;font-weight:600;letter-spacing:.04em;color:var(--dim);">YOUR CUSTOM SUB-CATEGORIES IN OTHER — TAP ONE TO OPEN ONLY ITS LIST</h3>'+
+      '<div class="catchips">'+
+        '<button type="button" class="chip" data-cpsub="" aria-pressed="'+(!cp.sub)+'" style="'+(!cp.sub?"background:var(--gold);color:#141310;border-color:var(--gold);":"")+'">All of Other</button>'+
+        subs.map(function(g){
+          var active = cp.sub && cp.sub.trim().toLowerCase()===g.name.toLowerCase();
+          return '<button type="button" class="chip" data-cpsub="'+esc(g.name)+'" aria-pressed="'+!!active+'" style="'+(active?"background:var(--gold);color:#141310;border-color:var(--gold);":"")+'">'+esc(g.name)+' · <span class="money">'+esc(fmt(g.spent))+'</span></button>';
+        }).join("")+
+      '</div></div>' : '')+
+    '<div style="margin-top:8px;">'+
+    (visible.length===0
+      ? emptyNote(cp.sub ? "No "+cp.sub+" expenses in "+monthLabel(mk)+"." : "No expenses in "+c.name+" in "+monthLabel(mk)+" yet.")
+      : groups.map(function(g){
+          return '<section aria-label="'+esc(heading)+" on "+esc(dateLabel(g.date))+": "+esc(fmt(g.total))+'">'+
+            '<div style="display:flex;align-items:baseline;justify-content:space-between;margin-top:16px;">'+
+            '<h3 style="font-size:14px;font-weight:600;">'+esc(dateLabel(g.date))+'</h3>'+
+            '<p class="money" style="font-size:13px;font-weight:600;color:var(--gold-deep);">'+esc(fmt(g.total))+' this day</p></div>'+
+            '<div class="listbox" style="margin-top:6px;">'+g.items.map(function(e){ return expenseRowHTML(e, false); }).join("")+'</div></section>';
+        }).join(""))+
+    '</div>'+
+    '<button class="btn-gold" id="cpAdd" style="margin-top:24px;">+ Add an expense to '+esc(c.name)+'</button>'+
+    '</div></div>';
+  var root = document.getElementById("pageRoot");
+  root.innerHTML = html;
+  root.firstChild.classList.add("open");
+  document.getElementById("cpBack").addEventListener("click", closeCategoryPage);
+  document.getElementById("cpAdd").addEventListener("click", function(){
+    document.getElementById("pageRoot").innerHTML = "";
+    openExpenseSheet({ mode:"add", date: todayStr(), categoryId: c.id });
+  });
+  root.querySelectorAll("[data-cpsub]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var v = b.getAttribute("data-cpsub");
+      state.catPage.sub = v ? v : null;
+      renderCategoryPage();
+      document.getElementById("pageRoot").firstChild.classList.add("open");
+    });
+  });
+  wireExpenseRows(root);
+}
+
+/* ============ DASHBOARD ============ */
+function renderDashboard(app){
+  var mk = state.month;
+  var n = monthNumbers(mk);
+  var html = monthSwitcherHTML(mk);
+  /* Bill reminders due soon (same as online tracker) */
+  var dueSoon = DB.bills.filter(function(b){ return !b.paid && daysUntil(b.due) <= 3; })
+    .sort(function(a,b){ return a.due<b.due?-1:1; });
+  if (dueSoon.length){
+    html += '<section class="card" style="margin-top:16px;border-color:var(--gold);" aria-label="Bill reminders due soon">'+
+      '<h2 style="font-size:13px;font-weight:600;letter-spacing:.05em;color:var(--gold-deep);">BILL REMINDERS</h2>'+
+      '<div style="margin-top:6px;display:flex;flex-direction:column;gap:6px;">'+
+      dueSoon.map(function(b){
+        var cd = billCountdown(b);
+        var col = (cd.tone==="overdue"||cd.tone==="today") ? "var(--danger)" : "var(--dim)";
+        return '<p style="font-size:14px;margin:0;">🔔 <strong>'+esc(billLabel(b))+' bill — '+esc(fmt(b.amount))+'</strong> <span style="color:'+col+';">'+esc(cd.text)+'</span></p>';
+      }).join("")+
+      '</div><p class="xsmall dim" style="margin-top:6px;">See all bills and countdowns in the Bills tab.</p></section>';
+  }
+  /* Summary dark card */
+  html += '<section class="darkcard" style="margin-top:12px;" aria-label="Monthly summary for '+esc(monthLabel(mk))+'">'+
+    '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">'+
+      '<div><p class="dlbl">Starting budget — '+esc(monthLabel(mk))+'</p>'+
+      '<p class="money font-display dbig">'+(n.hasBudget ? esc(fmt(n.starting)) : "—")+'</p>'+
+      (n.ownCarry!==0 ? '<p style="margin-top:6px;font-size:12px;color:var(--darkdim);">Includes <span style="color:'+(n.ownCarry<0?"#D06055":"#C6A15B")+';">'+esc(signedFmt(n.ownCarry))+'</span> carried forward from last month'+(n.fund>0 ? ", on top of this month's "+esc(fmt(n.fund)) : "")+'</p>' : '')+
+      (n.hasPapa ? '<p style="margin-top:6px;font-size:12px;color:var(--darkdim);">Includes Papa\'s money: <span style="color:#C6A15B;">'+esc(fmt(n.papaAvailable))+'</span>'+(n.papaReceived>0 ? " — Papa gave "+esc(fmt(n.papaReceived))+" this month" : "")+(n.papaCarry!==0 ? ", "+esc(signedFmt(n.papaCarry))+" of Papa's money carried in" : "")+'. Your own money is '+esc(fmt(n.ownStarting))+' of the total.</p>' : '')+
+      '</div>'+
+      '<button class="btn-pill" id="dashFundBtn" style="border-color:#C6A15B;color:#C6A15B;">'+(n.fund>0?"Edit budget":"Set budget")+'</button>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px;">'+
+      '<div><p style="font-size:12px;color:var(--darkdim);">Total spent this month</p>'+
+      '<p class="money font-display" style="font-size:24px;color:var(--darktext);">'+esc(fmt(n.totalSpent))+'</p>'+
+      (n.hasPapa ? '<p style="font-size:11px;color:var(--darkdim);margin-top:4px;">Your own '+esc(fmt(n.ownSpent))+' · Papa\'s work '+esc(fmt(n.papaSpent))+'</p>' : '')+'</div>'+
+      '<div><p style="font-size:12px;color:var(--darkdim);">Remaining / saved so far</p>'+
+      '<p class="money font-display" style="font-size:24px;color:'+(!n.hasBudget?"var(--darkdim)":n.remaining<0?"#D06055":"var(--darktext)")+';">'+(n.hasBudget?esc(fmt(n.remaining)):"—")+'</p>'+
+      (n.hasPapa ? '<p style="font-size:11px;color:var(--darkdim);margin-top:4px;">Of this, Papa\'s money left: '+esc(fmt(n.papaBalance))+'</p>' : '')+'</div>'+
+    '</div>'+
+    (n.hasBudget && n.starting>0
+      ? '<div style="margin-top:16px;"><div class="prog" style="background:#26262c;"><i style="width:'+Math.min(100, n.totalSpent/n.starting*100)+'%;background:'+(n.totalSpent>n.starting?"var(--danger)":"#C6A15B")+';"></i></div>'+
+        '<p style="margin-top:8px;font-size:12px;color:var(--darkdim);">'+esc(pctLabel(n.totalSpent, n.starting))+'% of your starting budget spent'+(n.remaining<0?" — you have spent more than your starting budget":"")+'</p></div>'
+      : '<p style="margin-top:10px;font-size:13px;color:var(--darkdim);">Tap "Set budget" above and enter this month\'s total money — your remaining balance will show here, and whatever is left carries forward to next month automatically.</p>')+
+  '</section>';
+  /* Papa card */
+  html += '<button type="button" id="dashPapaCard" class="card" style="margin-top:12px;width:100%;text-align:left;border-color:var(--gold);display:block;" aria-label="Open Papa\'s account for this month">'+
+    '<span style="display:flex;align-items:center;justify-content:space-between;gap:12px;"><span style="font-size:13px;font-weight:600;letter-spacing:.05em;color:var(--gold-deep);">PAPA\'S ACCOUNT — '+esc(monthLabel(mk).toUpperCase())+'</span><span style="font-size:13px;font-weight:600;color:var(--gold-deep);">Open ›</span></span>'+
+    (n.hasPapa
+      ? '<span style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px;">'+
+          '<span><span style="display:block;font-size:11px;color:var(--dim);">Papa gave</span><span class="money font-display" style="display:block;font-size:18px;margin-top:2px;">'+esc(fmt(n.papaReceived))+'</span></span>'+
+          '<span><span style="display:block;font-size:11px;color:var(--dim);">Spent on his work</span><span class="money font-display" style="display:block;font-size:18px;margin-top:2px;">'+esc(fmt(n.papaSpent))+'</span></span>'+
+          '<span><span style="display:block;font-size:11px;color:var(--dim);">Papa\'s money left</span><span class="money font-display" style="display:block;font-size:18px;margin-top:2px;color:'+(n.papaBalance<0?"var(--danger)":"var(--gold-deep)")+';">'+esc(fmt(n.papaBalance))+'</span></span>'+
+        '</span>'
+      : '<span style="display:block;margin-top:8px;font-size:13px;color:var(--dim);">No money from Papa recorded this month yet. Tap to add what Papa gave, what it was for, what you spent on his work, and how much of his money is left — kept separate from your own hisaab.</span>')+
+  '</button>';
+  /* Categories & Budget */
+  html += '<h2 class="secttl font-display">Categories &amp; Budget</h2><div style="display:flex;flex-direction:column;gap:12px;margin-top:8px;">'+
+    DB.categories.map(function(c){
+      var spent = catSpentMonth(mk, c.id), budget = catBudget(mk, c.id), left = budget - spent;
+      return '<button type="button" class="card" data-open-cat="'+c.id+'" style="width:100%;text-align:left;display:block;" aria-label="View details for the '+esc(c.name)+' category">'+
+        '<span style="display:flex;align-items:center;gap:12px;">'+monogram(c.name, c.color, 44)+
+        '<span style="flex:1;min-width:0;"><span style="display:block;font-size:16px;font-weight:600;">'+esc(c.name)+'</span>'+
+        '<span style="display:block;font-size:13px;color:var(--dim);">'+(budget>0 ? (left>=0 ? "Budget "+esc(fmt(budget))+" · "+esc(fmt(left))+" left" : "Budget "+esc(fmt(budget))+" · "+esc(fmt(-left))+" over budget") : "No budget set — set one in the Budget tab")+'</span></span>'+
+        '<span class="money" style="font-size:17px;font-weight:600;">'+esc(fmt(spent))+'</span></span>'+
+        (budget>0 ? '<span style="display:block;margin-top:12px;">'+progressBar(spent, budget, c.color)+'</span>' : '')+
+      '</button>';
+    }).join("")+
+  '</div>';
+  /* Month Summary section */
+  html += '<section aria-label="Month summary for '+esc(monthLabel(mk))+'"><h2 class="secttl font-display">Month Summary — '+esc(monthLabel(mk))+'</h2>'+
+    '<div class="card" style="margin-top:12px;">'+
+      msRow("This month's budget", n.fund>0 ? fmt(n.fund) : "Not set", false, "")+
+      msRow("Carried forward from last month", signedFmt(n.ownCarry), false, n.ownCarry<0?"var(--danger)":"var(--gold-deep)")+
+      msRow("Starting budget", (n.ownStarting!==0||n.fund>0) ? fmt(n.ownStarting) : "—", true, "")+
+      msRow("Total spent", fmt(n.totalSpent), false, "")+
+      msRow("Left / saved", (n.fund>0||n.ownCarry!==0) ? fmt(n.remaining) : "—", true, n.remaining<0?"var(--danger)":"var(--gold-deep)")+
+      (n.hasPapa ?
+        '<h3 style="margin-top:16px;font-size:13px;font-weight:600;letter-spacing:.05em;color:var(--dim);">PAPA\'S ACCOUNT — '+esc(monthLabel(mk).toUpperCase())+'</h3>'+
+        msRow("Papa gave this month", fmt(n.papaReceived), false, "")+
+        (n.papaCarry!==0 ? msRow("Papa's money carried in", signedFmt(n.papaCarry), false, n.papaCarry<0?"var(--danger)":"var(--gold-deep)") : "")+
+        msRow("Spent from Papa's money", fmt(n.papaSpent), false, "")+
+        msRow("Papa's money left", fmt(n.papaBalance), true, n.papaBalance<0?"var(--danger)":"var(--gold-deep)")+
+        '<p class="xsmall dim" style="margin-top:6px;">Papa\'s money is included in this month\'s total starting budget. Full detail — what each amount was given for, what was spent on it and what is left — is in the Papa tab.</p>'
+      : "")+
+      '<h3 style="margin-top:16px;font-size:13px;font-weight:600;letter-spacing:.05em;color:var(--dim);">SPENDING BY CATEGORY</h3>'+
+      '<p class="xsmall dim" style="margin-top:4px;">Tap any category to open its own page — every expense in it, day by day.</p>'+
+      '<div style="margin-top:4px;">'+
+      DB.categories.map(function(c){
+        var spent = catSpentMonth(mk, c.id), cnt = catCountMonth(mk, c.id), budget = catBudget(mk, c.id);
+        var subs = subBreakdown(mk, c.id);
+        var h = '<div style="border-bottom:1px solid var(--border);">'+
+          '<button type="button" data-open-cat="'+c.id+'" style="display:flex;width:100%;align-items:center;gap:12px;padding:10px 0;text-align:left;" aria-label="Open the '+esc(c.name)+' page">'+
+          monogram(c.name, c.color, 32)+
+          '<span style="flex:1;"><span style="display:block;font-size:15px;font-weight:500;">'+esc(c.name)+'</span>'+
+          '<span style="display:block;font-size:12px;color:var(--dim);">'+cnt+(cnt===1?" expense":" expenses")+(budget>0?" · Budget "+esc(fmt(budget)):"")+'</span></span>'+
+          '<span class="money" style="font-size:15px;font-weight:600;">'+esc(fmt(spent))+'</span><span style="font-size:18px;color:var(--gold-deep);">›</span></button>';
+        if (subs.length){
+          h += '<div style="margin:0 0 6px 44px;">'+subs.map(function(s){
+            return '<button type="button" data-open-cat-sub="'+c.id+'|'+esc(s.name)+'" style="display:flex;width:100%;align-items:baseline;justify-content:space-between;padding:4px 0;text-align:left;" aria-label="Open '+esc(s.name)+' inside '+esc(c.name)+'">'+
+              '<span style="font-size:13px;color:var(--dim);">'+esc(s.name)+'<span style="font-size:12px;"> · '+s.count+'×</span></span>'+
+              '<span style="display:flex;align-items:baseline;gap:6px;"><span class="money" style="font-size:13px;font-weight:500;">'+esc(fmt(s.spent))+'</span><span style="color:var(--gold-deep);">›</span></span></button>';
+          }).join("")+'</div>';
+        }
+        return h + '</div>';
+      }).join("")+
+      '</div>'+
+      '<p class="xsmall dim" style="margin-top:12px;">Whatever is left at the end of '+esc(monthLabel(mk))+' is carried forward automatically and added to next month\'s starting budget.</p>'+
+    '</div></section>';
+  /* This Month's Expenses */
+  var recent = sortedExpenses(DB.expenses.filter(function(e){ return mkOf(e.date)===mk; }));
+  html += '<h2 class="secttl font-display">This Month\'s Expenses</h2>'+
+    '<div class="listbox" style="margin-top:8px;">'+
+    (recent.length===0
+      ? '<p style="padding:20px 0;text-align:center;font-size:14px;color:var(--dim);">No expenses added this month yet. Tap the + button below to add your first expense.</p>'
+      : recent.map(function(e){ return expenseRowHTML(e, true); }).join(""))+
+    '</div>';
+  app.innerHTML = html;
+  wireMonthSwitcher(app);
+  wireExpenseRows(app);
+  document.getElementById("dashFundBtn").addEventListener("click", openFundSheet);
+  document.getElementById("dashPapaCard").addEventListener("click", function(){ state.tab = "papa"; render(); });
+  app.querySelectorAll("[data-open-cat]").forEach(function(b){
+    b.addEventListener("click", function(){ openCategoryPage(b.getAttribute("data-open-cat"), null); });
+  });
+  app.querySelectorAll("[data-open-cat-sub]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var parts = b.getAttribute("data-open-cat-sub").split("|");
+      openCategoryPage(parts[0], parts.slice(1).join("|"));
+    });
+  });
+}
+function msRow(label, value, bold, color){
+  return '<div style="display:flex;align-items:baseline;justify-content:space-between;padding:6px 0;'+(bold?"border-top:1px solid var(--border);":"")+'">'+
+    '<span style="font-size:14px;'+(bold?"font-weight:500;":"color:var(--dim);")+'">'+esc(label)+'</span>'+
+    '<span class="money" style="font-size:15px;font-weight:600;'+(color?"color:"+color+";":"")+'">'+esc(value)+'</span></div>';
+}
+
+/* ============ CALENDAR ============ */
+function renderCalendar(app){
+  var mk = state.month;
+  var p = mk.split("-"); var y = +p[0], m = +p[1];
+  var daysIn = new Date(y, m, 0).getDate();
+  var startOffset = (new Date(y, m-1, 1).getDay() + 6) % 7; /* Monday start */
+  var totals = {};
+  DB.expenses.forEach(function(e){ if (mkOf(e.date)===mk) totals[e.date] = (totals[e.date]||0) + (+e.amount||0); });
+  var cells = "";
+  for (var i=0;i<startOffset;i++) cells += '<span></span>';
+  for (var d=1; d<=daysIn; d++){
+    var ds = mk+"-"+pad(d);
+    var sel = state.calDate===ds, isToday = ds===todayStr();
+    cells += '<button type="button" class="cell'+(sel?" sel":"")+(isToday?" today":"")+'" data-calday="'+ds+'" aria-pressed="'+sel+'" aria-label="'+esc(dateLabel(ds))+(totals[ds]?", spent "+esc(fmt(totals[ds])):"")+'">'+
+      '<span class="dn">'+d+'</span>'+(totals[ds] ? '<span class="da money">'+esc(fmtCompact(totals[ds]))+'</span>' : '')+'</button>';
+  }
+  var dayExpenses = sortedExpenses(DB.expenses.filter(function(e){ return e.date===state.calDate; }));
+  var dayTotal = 0; dayExpenses.forEach(function(e){ dayTotal += +e.amount||0; });
+  /* per-category chips for the day */
+  var groups = {}, gorder = [];
+  dayExpenses.forEach(function(e){
+    if (!groups[e.catId]){ groups[e.catId] = { total:0, count:0 }; gorder.push(e.catId); }
+    groups[e.catId].total += +e.amount||0; groups[e.catId].count++;
+  });
+  gorder.sort(function(a,b){ return groups[b].total-groups[a].total; });
+  var chips = gorder.map(function(cid){
+    var c = catById(cid); if (!c) return "";
+    return '<button type="button" class="chip" data-day-cat="'+cid+'" style="border-color:'+c.color+';display:inline-flex;align-items:center;gap:8px;" aria-label="Open the '+esc(c.name)+' page"><span style="width:8px;height:8px;border-radius:50%;background:'+c.color+';display:inline-block;"></span>'+esc(c.name)+' · <span class="money">'+esc(fmt(groups[cid].total))+'</span><span style="color:var(--gold-deep);">›</span></button>';
+  }).join("");
+  /* Year overview */
+  var yr = state.calYear;
+  var yBudget = 0, ySpent = 0, yPapaIn = 0, yPapaOut = 0;
+  var janMk = yr+"-01";
+  yBudget += ownCarry(janMk) + papaCarry(janMk);
+  var monthTiles = "", monthRows = "", maxSpent = 1;
+  var mmData = [];
+  for (var mm=1; mm<=12; mm++){
+    var key = yr+"-"+pad(mm);
+    var nn = monthNumbers(key);
+    var spentAll = nn.totalSpent;
+    if (spentAll > maxSpent) maxSpent = spentAll;
+    yBudget += nn.fund + nn.papaReceived;
+    ySpent += spentAll; yPapaIn += nn.papaReceived; yPapaOut += nn.papaSpent;
+    mmData.push({ key:key, n:nn, spent:spentAll, has: allDataMonths().indexOf(key)>-1 });
+  }
+  var ySaved = yBudget - ySpent;
+  monthTiles = mmData.map(function(md){
+    return '<button type="button" data-gomonth="'+md.key+'" style="border-radius:16px;padding:12px;text-align:left;background:'+(md.key===mk?"var(--surface-alt)":"var(--surface)")+';border:1px solid '+(md.key===mk?"var(--gold)":"var(--border)")+';" aria-label="Open '+esc(monthLabel(md.key))+', spent '+esc(fmt(md.spent))+'">'+
+      '<span style="display:block;font-size:13px;font-weight:600;">'+esc(monthShort(md.key))+'</span>'+
+      '<span class="money" style="display:block;font-size:14px;font-weight:600;color:'+(md.spent>0?"var(--gold-deep)":"var(--dim)")+';">'+(md.spent>0?esc(fmt(md.spent)):"—")+'</span>'+
+      (md.n.fund>0 ? '<span style="display:block;font-size:11px;color:var(--dim);">Fund '+esc(fmt(md.n.fund))+'</span>' : '')+
+      '<span style="display:block;height:4px;border-radius:99px;background:var(--surface-alt);margin-top:8px;overflow:hidden;"><span style="display:block;height:100%;border-radius:99px;background:var(--gold);width:'+Math.round(md.spent/maxSpent*100)+'%"></span></span></button>';
+  }).join("");
+  var activeMonths = mmData.filter(function(md){ return md.spent>0 || md.n.fund>0 || md.n.ownCarry!==0 || md.n.papaReceived>0; });
+  monthRows = activeMonths.length===0
+    ? '<p style="padding:20px 0;text-align:center;font-size:14px;color:var(--dim);">Nothing saved for '+yr+' yet. Past years stay saved here automatically.</p>'
+    : activeMonths.map(function(md){
+        return '<button type="button" class="erow" data-gomonth="'+md.key+'" aria-label="Open '+esc(monthLabel(md.key))+'">'+
+          '<span style="flex:1;"><span style="display:block;font-size:15px;font-weight:600;">'+esc(monthLabel(md.key))+'</span>'+
+          '<span style="display:block;font-size:12px;color:var(--dim);">Spent '+esc(fmt(md.spent))+(md.n.ownCarry!==0 ? " · "+esc(signedFmt(md.n.ownCarry))+" carried in" : "")+'</span></span>'+
+          '<span style="text-align:right;"><span style="display:block;font-size:11px;color:var(--dim);">'+(md.n.remaining>=0?"Saved":"Overspent")+'</span>'+
+          '<span class="money" style="display:block;font-size:15px;font-weight:600;color:'+(md.n.remaining<0?"var(--danger)":"var(--gold-deep)")+';">'+esc(fmt(Math.abs(md.n.remaining)))+'</span></span></button>';
+      }).join("");
+  /* Year category totals */
+  var yc = {};
+  DB.expenses.forEach(function(e){ if (e.date.slice(0,4)===String(yr)){ yc[e.catId] = (yc[e.catId]||0) + (+e.amount||0); } });
+  var ycKeys = Object.keys(yc).filter(function(k){ return yc[k]>0; }).sort(function(a,b){ return yc[b]-yc[a]; });
+  var html = monthSwitcherHTML(mk)+
+    '<div class="caldow"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>'+
+    '<div class="calgrid" role="grid" aria-label="'+esc(monthLabel(mk))+' calendar">'+cells+'</div>'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:20px;">'+
+      '<h2 class="font-display" style="font-size:20px;">'+esc(dateLabel(state.calDate))+'</h2>'+
+      (dayTotal>0 ? '<p class="money" style="font-size:15px;font-weight:600;color:var(--gold-deep);">'+esc(fmt(dayTotal))+'</p>' : '')+
+    '</div>'+
+    (chips ? '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;" role="group" aria-label="This day\'s spending by category">'+chips+'</div>' : '')+
+    '<div class="listbox" style="margin-top:8px;">'+
+    (dayExpenses.length===0
+      ? '<p style="padding:20px 0;text-align:center;font-size:14px;color:var(--dim);">No expenses on this day.</p>'
+      : dayExpenses.map(function(e){ return expenseRowHTML(e, false); }).join(""))+
+    '</div>'+
+    '<button class="btn-outline" id="calAddDay" style="margin-top:12px;">+ Add an expense for '+esc(dateLabel(state.calDate))+'</button>'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:32px;">'+
+      '<button class="arrow" data-yr="-1" aria-label="Previous year" style="width:44px;height:44px;border-radius:50%;border:1px solid var(--border);font-size:19px;">‹</button>'+
+      '<h2 class="font-display" style="font-size:20px;">Year '+yr+'</h2>'+
+      '<button class="arrow" data-yr="1" aria-label="Next year" style="width:44px;height:44px;border-radius:50%;border:1px solid var(--border);font-size:19px;">›</button>'+
+    '</div>'+
+    '<div class="darkcard" style="margin-top:12px;" aria-label="Yearly summary for '+yr+'">'+
+      '<p class="dlbl">Yearly summary — '+yr+'</p>'+
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:8px;">'+
+        '<div><p style="font-size:11px;color:var(--darkdim);">Total budget</p><p class="money font-display" style="font-size:18px;color:#C6A15B;margin-top:2px;">'+esc(fmt(yBudget))+'</p></div>'+
+        '<div><p style="font-size:11px;color:var(--darkdim);">Total spent</p><p class="money font-display" style="font-size:18px;color:var(--darktext);margin-top:2px;">'+esc(fmt(ySpent))+'</p></div>'+
+        '<div><p style="font-size:11px;color:var(--darkdim);">Total saved</p><p class="money font-display" style="font-size:18px;color:'+(ySaved<0?"#D06055":"var(--darktext)")+';margin-top:2px;">'+esc(fmt(ySaved))+'</p></div>'+
+      '</div>'+
+      ((yPapaIn>0||yPapaOut>0) ? '<p style="margin-top:12px;font-size:12px;color:var(--darkdim);">Papa\'s account in '+yr+': Papa gave <span style="color:#C6A15B;">'+esc(fmt(yPapaIn))+'</span> · spent on his work '+esc(fmt(yPapaOut))+' · Papa\'s money left '+esc(fmt(yPapaIn-yPapaOut))+' (this year\'s amounts only — see the Papa tab for the full balance).</p>' : '')+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;">'+monthTiles+'</div>'+
+    '<h3 class="font-display" style="font-size:18px;margin-top:20px;">'+yr+', month by month</h3>'+
+    '<div class="listbox" style="margin-top:8px;">'+monthRows+'</div>'+
+    '<p class="xsmall dim" style="margin-top:12px;text-align:center;">Months and years move forward on their own with your phone\'s real calendar and local time. Past months and years are never deleted.</p>'+
+    (ycKeys.length ?
+      '<div class="card" style="margin-top:20px;"><h3 class="font-display" style="font-size:18px;">Where the money went in '+yr+'</h3>'+
+      '<p class="xsmall dim" style="margin-top:4px;">Tap a category to open its page for '+esc(monthLabel(mk))+'.</p>'+
+      ycKeys.map(function(cid){
+        var c = catById(cid); if (!c) return "";
+        return '<button type="button" data-open-cat="'+cid+'" style="display:flex;width:100%;align-items:center;gap:12px;padding:8px 0;text-align:left;border-bottom:1px solid var(--border);">'+monogram(c.name, c.color, 32)+
+          '<span style="flex:1;font-size:15px;">'+esc(c.name)+'</span><span class="money" style="font-size:15px;font-weight:600;">'+esc(fmt(yc[cid]))+'</span><span style="font-size:18px;color:var(--gold-deep);">›</span></button>';
+      }).join("")+'</div>' : '');
+  app.innerHTML = html;
+  wireMonthSwitcher(app);
+  wireExpenseRows(app);
+  app.querySelectorAll("[data-calday]").forEach(function(b){
+    b.addEventListener("click", function(){ state.calDate = b.getAttribute("data-calday"); render(); });
+  });
+  app.querySelectorAll("[data-yr]").forEach(function(b){
+    b.addEventListener("click", function(){ state.calYear += +b.getAttribute("data-yr"); render(); });
+  });
+  app.querySelectorAll("[data-gomonth]").forEach(function(b){
+    b.addEventListener("click", function(){
+      state.month = b.getAttribute("data-gomonth");
+      state.calDate = state.month+"-01";
+      state.calYear = +state.month.slice(0,4);
+      render();
+    });
+  });
+  app.querySelectorAll("[data-day-cat]").forEach(function(b){
+    b.addEventListener("click", function(){ openCategoryPage(b.getAttribute("data-day-cat"), null); });
+  });
+  app.querySelectorAll("[data-open-cat]").forEach(function(b){
+    b.addEventListener("click", function(){ openCategoryPage(b.getAttribute("data-open-cat"), null); });
+  });
+  document.getElementById("calAddDay").addEventListener("click", function(){
+    openExpenseSheet({ mode:"add", date: state.calDate });
+  });
+}
+
+/* ============ TRANSACTIONS ============ */
+function txStats(){
+  var list = DB.expenses.filter(function(e){ return state.tx.scope==="all" || mkOf(e.date)===state.month; });
+  var s = { totalCount:list.length, totalAmount:0, onlineCount:0, onlineAmount:0, cashCount:0, cashAmount:0, perCategory:[], perPerson:[] };
+  var pc = {}, pp = {};
+  list.forEach(function(e){
+    var a = +e.amount||0; s.totalAmount += a;
+    if (e.method==="online"){ s.onlineCount++; s.onlineAmount += a; } else { s.cashCount++; s.cashAmount += a; }
+    if (!pc[e.catId]) pc[e.catId] = { catId:e.catId, count:0, amount:0 };
+    pc[e.catId].count++; pc[e.catId].amount += a;
+    var payee = (e.payee||"").trim();
+    if (payee){
+      if (!pp[payee]) pp[payee] = { payee:payee, count:0, amount:0, onlineCount:0, cashCount:0 };
+      pp[payee].count++; pp[payee].amount += a;
+      if (e.method==="online") pp[payee].onlineCount++; else pp[payee].cashCount++;
+    }
+  });
+  s.perCategory = Object.keys(pc).map(function(k){ return pc[k]; }).sort(function(a,b){ return b.amount-a.amount; });
+  s.perPerson = Object.keys(pp).map(function(k){ return pp[k]; }).sort(function(a,b){ return b.amount-a.amount; });
+  return s;
+}
+function txFiltered(){
+  var q = state.tx.q.trim().toLowerCase();
+  return sortedExpenses(DB.expenses.filter(function(e){
+    if (state.tx.method!=="all" && e.method!==state.tx.method) return false;
+    if (state.tx.catId && e.catId!==state.tx.catId) return false;
+    if (q){
+      var c = catById(e.catId);
+      var hay = ((e.note||"")+" "+(e.payee||"")+" "+(e.sub||"")+" "+(c?c.name:"")).toLowerCase();
+      if (hay.indexOf(q)===-1) return false;
+    }
+    return true;
+  }));
+}
+function renderTransactions(app){
+  var s = txStats();
+  function statCard(label, count, amount, method){
+    var active = state.tx.method===method;
+    return '<button type="button" class="statcard" data-txmethod="'+method+'" aria-pressed="'+active+'" style="'+(active?"border-color:var(--gold);":"")+'">'+
+      '<span style="display:block;font-size:12px;font-weight:500;color:var(--dim);">'+label+'</span>'+
+      '<span class="font-display" style="display:block;font-size:24px;margin-top:4px;">'+count+'</span>'+
+      '<span class="money" style="display:block;font-size:12px;color:var(--gold-deep);">'+esc(fmt(amount))+'</span></button>';
+  }
+  var html = '<h2 class="font-display" style="font-size:24px;">Transactions</h2>'+
+    '<div class="seg2" role="group" aria-label="Scope for the counts">'+
+      '<button type="button" data-txscope="month" class="'+(state.tx.scope==="month"?"on":"")+'">'+esc(monthLabel(state.month))+'</button>'+
+      '<button type="button" data-txscope="all" class="'+(state.tx.scope==="all"?"on":"")+'">All time</button>'+
+    '</div>'+
+    '<div style="display:flex;gap:8px;margin-top:12px;">'+
+      statCard("Total transactions", s.totalCount, s.totalAmount, "all")+
+      statCard("Online", s.onlineCount, s.onlineAmount, "online")+
+      statCard("Cash", s.cashCount, s.cashAmount, "cash")+
+    '</div>'+
+    '<p class="xsmall dim" style="margin-top:8px;">Tap the Online or Cash card to filter the list below to that payment method.</p>'+
+    (s.perCategory.length ?
+      '<div class="card" style="margin-top:20px;"><h3 class="font-display" style="font-size:18px;">Transactions in each category</h3>'+
+      s.perCategory.map(function(pc){
+        var c = catById(pc.catId); if (!c) return "";
+        return '<button type="button" data-txcat="'+pc.catId+'" aria-pressed="'+(state.tx.catId===pc.catId)+'" style="display:flex;width:100%;align-items:center;gap:12px;padding:10px 0;text-align:left;border-bottom:1px solid var(--border);" aria-label="Filter transactions by '+esc(c.name)+'">'+
+          monogram(c.name, c.color, 32)+'<span style="flex:1;font-size:15px;">'+esc(c.name)+'</span>'+
+          '<span style="font-size:13px;color:var(--dim);">'+pc.count+' transactions</span>'+
+          '<span class="money" style="font-size:15px;font-weight:600;">'+esc(fmt(pc.amount))+'</span></button>';
+      }).join("")+'</div>' : '')+
+    (s.perPerson.length ?
+      '<div class="card" style="margin-top:16px;"><h3 class="font-display" style="font-size:18px;">Who you paid, and how many times</h3>'+
+      s.perPerson.map(function(pp){
+        var split = [];
+        if (pp.onlineCount>0) split.push("Online "+pp.onlineCount);
+        if (pp.cashCount>0) split.push("Cash "+pp.cashCount);
+        return '<button type="button" data-txperson="'+esc(pp.payee)+'" style="display:flex;width:100%;align-items:center;gap:12px;padding:10px 0;text-align:left;border-bottom:1px solid var(--border);" aria-label="Search transactions paid to '+esc(pp.payee)+'">'+
+          monogram(pp.payee, "#C6A15B", 32)+
+          '<span style="flex:1;min-width:0;"><span style="display:block;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(pp.payee)+'</span>'+
+          '<span style="display:block;font-size:12px;color:var(--dim);">'+esc(split.join(" · "))+'</span></span>'+
+          '<span style="font-size:13px;color:var(--dim);">'+pp.count+'×</span>'+
+          '<span class="money" style="font-size:15px;font-weight:600;">'+esc(fmt(pp.amount))+'</span></button>';
+      }).join("")+'</div>' : '')+
+    '<label class="fldlbl" for="txSearch">Search transactions</label>'+
+    '<input id="txSearch" type="search" placeholder="Name, note, sub-category or category — e.g. Ahmed, petrol, board refill" value="'+esc(state.tx.q)+'">'+
+    '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;" role="group" aria-label="Filters" id="txChips"></div>'+
+    '<div id="txResults"></div>'+
+    '<h3 class="font-display" style="font-size:20px;margin-top:28px;">Past Months (saved)</h3>'+
+    '<div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">'+
+    (allDataMonths().length===0
+      ? emptyNote("No past data yet. Keep adding expenses — every month's data stays saved here and is never deleted. Switch months on the Dashboard to see any past month's own budget, total spent and summary.")
+      : allDataMonths().slice().reverse().map(function(mk){
+          var cnt = 0; DB.expenses.forEach(function(e){ if (mkOf(e.date)===mk) cnt++; });
+          var nn = monthNumbers(mk);
+          var bits = [cnt+" transactions"];
+          if (nn.fund>0) bits.push("Fund "+fmt(nn.fund));
+          if (nn.papaReceived>0) bits.push("Papa gave "+fmt(nn.papaReceived));
+          if (nn.papaSpent>0) bits.push("Papa's work "+fmt(nn.papaSpent));
+          return '<div style="display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px 16px;">'+
+            '<span style="flex:1;"><span style="display:block;font-size:15px;font-weight:600;">'+esc(monthLabel(mk))+'</span>'+
+            '<span style="display:block;font-size:12px;color:var(--dim);">'+esc(bits.join(" · "))+'</span></span>'+
+            '<span class="money" style="font-size:15px;font-weight:600;color:var(--gold-deep);">'+esc(fmt(nn.totalSpent))+'</span></div>';
+        }).join(""))+
+    '</div>';
+  app.innerHTML = html;
+  function paintChips(){
+    var chips = [["all","All"],["online","Online only"],["cash","Cash only"]].map(function(f){
+      var active = state.tx.method===f[0];
+      return '<button type="button" class="chip" data-txchip="'+f[0]+'" aria-pressed="'+active+'" style="'+(active?"background:var(--gold);color:#141310;border-color:var(--gold);":"")+'">'+f[1]+'</button>';
+    }).join("");
+    if (state.tx.catId){
+      var c = catById(state.tx.catId);
+      chips += '<button type="button" class="chip" data-txcatchip="1" style="background:var(--surface-alt);border-color:var(--gold);" aria-label="Remove the category filter">'+esc(c?c.name:"Category")+' ✕</button>';
+    }
+    var box = document.getElementById("txChips");
+    box.innerHTML = chips;
+    box.querySelectorAll("[data-txchip]").forEach(function(b){
+      b.addEventListener("click", function(){ state.tx.method = b.getAttribute("data-txchip"); render(); });
+    });
+    var cc = box.querySelector("[data-txcatchip]");
+    if (cc) cc.addEventListener("click", function(){ state.tx.catId = null; render(); });
+  }
+  function paintResults(){
+    var list = txFiltered();
+    var total = 0; list.forEach(function(e){ total += +e.amount||0; });
+    var box = document.getElementById("txResults");
+    box.innerHTML = '<p class="money small" style="color:var(--dim);margin-top:16px;">'+list.length+' transactions · total '+esc(fmt(total))+'</p>'+
+      '<div class="listbox" style="margin-top:4px;">'+
+      (list.length===0
+        ? '<p style="padding:20px 0;text-align:center;font-size:14px;color:var(--dim);">No transactions found. Try changing the search or the filters.</p>'
+        : list.map(function(e){ return expenseRowHTML(e, true); }).join(""))+
+      '</div>';
+    wireExpenseRows(box);
+  }
+  paintChips();
+  paintResults();
+  app.querySelectorAll("[data-txscope]").forEach(function(b){
+    b.addEventListener("click", function(){ state.tx.scope = b.getAttribute("data-txscope"); render(); });
+  });
+  app.querySelectorAll("[data-txmethod]").forEach(function(b){
+    b.addEventListener("click", function(){ state.tx.method = b.getAttribute("data-txmethod"); render(); });
+  });
+  app.querySelectorAll("[data-txcat]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var id = b.getAttribute("data-txcat");
+      state.tx.catId = state.tx.catId===id ? null : id;
+      render();
+    });
+  });
+  app.querySelectorAll("[data-txperson]").forEach(function(b){
+    b.addEventListener("click", function(){
+      state.tx.q = b.getAttribute("data-txperson");
+      render();
+      var inp = document.getElementById("txSearch");
+      if (inp){ inp.focus(); }
+    });
+  });
+  document.getElementById("txSearch").addEventListener("input", function(){
+    state.tx.q = this.value;
+    paintResults();
+  });
+}
+
+/* ============ PAPA TAB ============ */
+function renderPapa(app){
+  var mk = state.month;
+  var n = monthNumbers(mk);
+  var totalAvailable = n.papaCarry + n.papaReceived;
+  var funds = DB.papaFunds.filter(function(f){ return mkOf(f.date)===mk; })
+    .sort(function(a,b){ return a.date<b.date?1:-1; });
+  var spends = DB.papaSpends.filter(function(s){ return mkOf(s.date)===mk; })
+    .sort(function(a,b){ return a.date<b.date?1:-1; });
+  var html = monthSwitcherHTML(mk)+
+    '<h2 class="font-display" style="font-size:24px;margin-top:16px;">Papa\'s Account</h2>'+
+    '<p class="small dim" style="margin-top:4px;">Kept completely separate from your own hisaab, month by month — just like your own account. Papa\'s money is also included in your total budget on the Dashboard.</p>'+
+    '<section class="darkcard" style="margin-top:16px;" aria-label="Papa\'s account summary for '+esc(monthLabel(mk))+'">'+
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">'+
+        '<div><p style="font-size:11px;color:var(--darkdim);">Papa gave this month</p><p class="money font-display" style="font-size:20px;color:#C6A15B;margin-top:2px;">'+esc(fmt(n.papaReceived))+'</p></div>'+
+        '<div><p style="font-size:11px;color:var(--darkdim);">Spent from Papa\'s money</p><p class="money font-display" style="font-size:20px;color:var(--darktext);margin-top:2px;">'+esc(fmt(n.papaSpent))+'</p></div>'+
+        '<div><p style="font-size:11px;color:var(--darkdim);">Papa\'s money left</p><p class="money font-display" style="font-size:20px;color:'+(n.papaBalance<0?"#D06055":"var(--darktext)")+';margin-top:2px;">'+esc(fmt(n.papaBalance))+'</p></div>'+
+      '</div>'+
+      (n.papaCarry!==0 ? '<p style="margin-top:12px;font-size:12px;color:var(--darkdim);">Includes <span style="color:'+(n.papaCarry<0?"#D06055":"#C6A15B")+';">'+esc(signedFmt(n.papaCarry))+'</span> of Papa\'s money carried forward from earlier months — total Papa money available this month is '+esc(fmt(totalAvailable))+'. </p>' : '')+
+      (n.papaBalance<0 ? '<p style="margin-top:8px;font-size:12px;color:#D06055;">More has been spent from Papa\'s money than Papa gave — check the records below.</p>' : '')+
+    '</section>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px;">'+
+      '<button class="btn-gold" id="papaAddFund">+ Papa gave money</button>'+
+      '<button class="btn-outline" id="papaAddSpend">+ Spent Papa\'s money</button>'+
+    '</div>'+
+    '<h3 class="font-display" style="font-size:20px;margin-top:28px;">What Papa Gave — '+esc(monthLabel(mk))+'</h3>'+
+    '<div style="display:flex;flex-direction:column;gap:12px;margin-top:12px;">'+
+    (funds.length===0
+      ? emptyNote("Nothing from Papa recorded this month. Tap \"+ Papa gave money\" above when Papa gives you money for a work — write how much and what it was for.")
+      : funds.map(function(f){
+          var st = papaStatus(f);
+          var spent = fundSpentTotal(f.id), left = (+f.amount||0) - spent;
+          return '<div class="card">'+
+            '<div style="display:flex;align-items:flex-start;gap:12px;">'+
+              '<button type="button" data-edit-fund="'+f.id+'" style="flex:1;min-width:0;text-align:left;" aria-label="Edit Papa gave '+esc(fmt(f.amount))+' for '+esc(f.purpose||"")+'">'+
+                '<span style="display:block;font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(f.purpose||"Papa's money")+'</span>'+
+                '<span style="display:block;font-size:12px;color:var(--dim);">'+esc(dateLabel(f.date))+(f.note?" · "+esc(f.note):"")+'</span></button>'+
+              '<span class="pill-status" style="background:'+st.color+'26;color:'+st.color+';border:1px solid '+st.color+'66;">'+st.label+'</span>'+
+            '</div>'+
+            '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px;">'+
+              '<div><p style="font-size:11px;color:var(--dim);">Papa gave</p><p class="money" style="font-size:15px;font-weight:600;">'+esc(fmt(f.amount))+'</p></div>'+
+              '<div><p style="font-size:11px;color:var(--dim);">Spent on this work</p><p class="money" style="font-size:15px;font-weight:600;">'+esc(fmt(spent))+'</p></div>'+
+              '<div><p style="font-size:11px;color:var(--dim);">Left of Papa\'s money</p><p class="money" style="font-size:15px;font-weight:600;color:'+(left<0?"var(--danger)":"var(--gold-deep)")+';">'+esc(fmt(left))+'</p></div>'+
+            '</div>'+
+            '<div style="margin-top:12px;">'+progressBar(spent, +f.amount||0, st.color)+'</div>'+
+            (left>0 ? '<button type="button" class="btn-outline" data-spend-from="'+f.id+'" style="margin-top:12px;padding:10px;font-size:14px;" aria-label="Add a spend from the money Papa gave for '+esc(f.purpose||"")+'">+ Spend from this amount</button>' : '')+
+          '</div>';
+        }).join(""))+
+    '</div>'+
+    '<h3 class="font-display" style="font-size:20px;margin-top:28px;">Spent from Papa\'s Money — '+esc(monthLabel(mk))+'</h3>'+
+    '<div class="listbox" style="margin-top:8px;">'+
+    (spends.length===0
+      ? '<p style="padding:20px 0;text-align:center;font-size:14px;color:var(--dim);">Nothing spent from Papa\'s money this month yet.</p>'
+      : spends.map(function(s){
+          var fund = s.fundId ? DB.papaFunds.filter(function(x){ return x.id===s.fundId; })[0] : null;
+          return '<button type="button" class="erow" data-edit-spend="'+s.id+'" aria-label="Edit spend of '+esc(fmt(s.amount))+' from Papa\'s money">'+
+            monogram(fund ? fund.purpose : "Papa", "#C6A15B", 40)+
+            '<span style="flex:1;min-width:0;"><span style="display:block;font-size:15px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(s.note||"Spent on Papa's work")+'</span>'+
+            '<span style="display:block;font-size:13px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(fund ? "From: Papa gave for "+esc(fund.purpose) : "From Papa's money in general")+'</span>'+
+            '<span style="display:block;font-size:12px;color:var(--dim);">'+esc(dateLabel(s.date))+'</span></span>'+
+            '<span class="money" style="font-size:15px;font-weight:600;">'+esc(fmt(s.amount))+'</span></button>';
+        }).join(""))+
+    '</div>'+
+    '<p class="xsmall dim" style="margin-top:12px;">Whatever of Papa\'s money is left at the end of '+esc(monthLabel(mk))+' stays in Papa\'s balance and carries forward to next month automatically — separate from your own carry-forward.</p>';
+  app.innerHTML = html;
+  wireMonthSwitcher(app);
+  document.getElementById("papaAddFund").addEventListener("click", function(){ openPapaFundSheet({ mode:"add" }); });
+  document.getElementById("papaAddSpend").addEventListener("click", function(){ openPapaSpendSheet({ mode:"add" }); });
+  app.querySelectorAll("[data-edit-fund]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var f = DB.papaFunds.filter(function(x){ return x.id===b.getAttribute("data-edit-fund"); })[0];
+      if (f) openPapaFundSheet({ mode:"edit", fund:f });
+    });
+  });
+  app.querySelectorAll("[data-spend-from]").forEach(function(b){
+    b.addEventListener("click", function(){ openPapaSpendSheet({ mode:"add", fundId: b.getAttribute("data-spend-from") }); });
+  });
+  app.querySelectorAll("[data-edit-spend]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var s = DB.papaSpends.filter(function(x){ return x.id===b.getAttribute("data-edit-spend"); })[0];
+      if (s) openPapaSpendSheet({ mode:"edit", spend:s });
+    });
+  });
+}
+
+/* ============ BROWSER NOTIFICATIONS (handled by the app itself) ============ */
+var notifiedKeys = {};   /* this session only — a bill+stage notifies once per app open */
+var notifBlocked = false;
+function notifState(){
+  if (!("Notification" in window)) return "unsupported";
+  return Notification.permission; /* "granted" | "denied" | "default" */
+}
+function maybeNotify(){
+  if (notifState() !== "granted") return;
+  bannerBills().forEach(function(b){
+    var d = daysUntil(b.due);
+    var stage = d<0 ? "overdue" : d===0 ? "today" : d===1 ? "1day" : "3days";
+    var key = b.id + "|" + b.due + "|" + stage;
+    if (notifiedKeys[key]) return;
+    notifiedKeys[key] = 1;
+    var when = d<0 ? "was due on " + dateLabel(b.due) + " — overdue" : d===0 ? "is due TODAY" : d===1 ? "is due tomorrow" : "is due in 3 days";
+    try {
+      new Notification("🔔 Bill Reminder — " + billLabel(b) + " bill", {
+        body: fmt(b.amount) + " " + when + ". Due date: " + dateLabel(b.due) + ".",
+        tag: "bill-" + b.id + "-" + stage
+      });
+    } catch(e){ notifBlocked = true; }
+  });
+}
+
+/* ============ TOP PUSH-STYLE BANNER (inside the app, same style for every bill type) ============ */
+var dismissedBanners = {}; /* this session only */
+function renderBanner(){
+  var root = document.getElementById("bannerRoot");
+  if (!root){
+    root = document.createElement("div");
+    root.id = "bannerRoot";
+    document.body.insertBefore(root, document.body.firstChild);
+  }
+  var bills = bannerBills().filter(function(b){ return !dismissedBanners[b.id + "|" + b.due]; });
+  if (!bills.length){
+    root.innerHTML = "";
+    document.body.style.paddingTop = "";
+    return;
+  }
+  root.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:80;padding:10px 10px 0;display:flex;flex-direction:column;gap:8px;pointer-events:none;";
+  root.innerHTML = bills.map(function(b){
+    var d = daysUntil(b.due);
+    var when = d<0 ? "Overdue — was due " + dateLabel(b.due) : d===0 ? "Due TODAY" : d===1 ? "Due tomorrow — 1 day left" : "Due in 3 days — " + dateLabel(b.due);
+    var urgent = d<=0;
+    return '<div role="alert" style="pointer-events:auto;max-width:672px;margin:0 auto;width:100%;background:#1b1b1f;border:1px solid '+(urgent?"#d06055":"#c6a15b")+';border-radius:18px;box-shadow:0 12px 32px rgba(0,0,0,.55);padding:12px 14px;display:flex;gap:11px;align-items:flex-start;color:#f2eee6;">'+
+      '<span style="width:38px;height:38px;flex:0 0 38px;border-radius:10px;background:linear-gradient(160deg,#e9c65c,#c79a24);display:grid;place-items:center;font-size:19px;">🔔</span>'+
+      '<span style="flex:1;min-width:0;">'+
+        '<span style="display:flex;justify-content:space-between;gap:8px;"><span style="font-size:12px;font-weight:700;letter-spacing:.06em;color:#c6a15b;">BILL REMINDER</span><span style="font-size:11px;color:#9a958a;">now</span></span>'+
+        '<span style="display:block;font-size:15px;font-weight:600;margin-top:1px;">'+esc(billLabel(b))+' bill — '+esc(fmt(b.amount))+'</span>'+
+        '<span style="display:block;font-size:13px;color:'+(urgent?"#f0958d":"#cfc9ba")+';font-weight:'+(urgent?"700":"400")+';">'+esc(when)+'</span>'+
+      '</span>'+
+      '<button type="button" data-banner-open="'+b.id+'" style="flex:0 0 auto;background:#c6a15b;color:#141310;border-radius:99px;padding:8px 13px;font-size:12.5px;font-weight:700;min-height:38px;">View</button>'+
+      '<button type="button" data-banner-x="'+b.id+'|'+b.due+'" aria-label="Dismiss this reminder" style="flex:0 0 auto;width:38px;height:38px;min-height:38px;border-radius:50%;border:1px solid #3a3a41;color:#cfc9ba;font-size:15px;">✕</button>'+
+    '</div>';
+  }).join("");
+  root.querySelectorAll("[data-banner-x]").forEach(function(x){
+    x.addEventListener("click", function(){
+      dismissedBanners[x.getAttribute("data-banner-x")] = 1;
+      renderBanner();
+    });
+  });
+  root.querySelectorAll("[data-banner-open]").forEach(function(x){
+    x.addEventListener("click", function(){ state.tab = "bills"; render(); window.scrollTo(0,0); });
+  });
+  document.body.style.paddingTop = root.offsetHeight + "px";
+}
+
+/* ============ BILLS TAB ============ */
+function billRowHTML(b){
+  var cd = billCountdown(b);
+  var toneColor = (cd.tone==="overdue"||cd.tone==="today") ? "var(--danger)" : cd.tone==="soon" ? "var(--gold-deep)" : cd.tone==="paid" ? "#3E7C6B" : "var(--dim)";
+  var reminder = billReminderText(b);
+  var h = '<div style="padding:12px 0;border-bottom:1px solid var(--border);">'+
+    '<div style="display:flex;align-items:center;gap:12px;">'+
+      '<button type="button" data-edit-bill="'+b.id+'" style="display:flex;flex:1;min-width:0;align-items:center;gap:12px;text-align:left;" aria-label="Edit the '+esc(billLabel(b))+' bill of '+esc(fmt(b.amount))+'">'+
+        monogram(billLabel(b), billKind(b.kind).color, 40)+
+        (b.photo ? '<img src="'+b.photo+'" alt="Photo of the '+esc(billLabel(b))+' bill" style="width:40px;height:40px;flex:0 0 40px;border-radius:9px;object-fit:cover;border:1px solid var(--border);">' : '')+
+        '<span style="flex:1;min-width:0;"><span style="display:block;font-size:15px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(billLabel(b))+' bill</span>'+
+        '<span style="display:block;font-size:13px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Due '+esc(dateLabel(b.due))+(b.note?" · "+esc(b.note):"")+(b.paid&&b.paidDate?" · Paid on "+esc(dateLabel(b.paidDate)):"")+'</span></span>'+
+        '<span style="text-align:right;"><span class="money" style="display:block;font-size:15px;font-weight:600;">'+esc(fmt(b.amount))+'</span>'+
+        '<span style="display:block;font-size:12px;font-weight:600;color:'+toneColor+';">'+esc(cd.text)+'</span></span>'+
+      '</button>'+
+      '<button type="button" data-pay-bill="'+b.id+'" class="btn-pill" style="flex:0 0 auto;'+(b.paid ? "border-color:var(--border);color:var(--dim);" : "background:#3E7C6B;border-color:#3E7C6B;color:#fff;")+'" aria-label="'+(b.paid ? "Mark the "+esc(billLabel(b))+" bill as unpaid again" : "Mark the "+esc(billLabel(b))+" bill as paid")+'">'+(b.paid ? "Paid ✓" : "Mark paid")+'</button>'+
+    '</div>'+
+    (b.photo ? '<button type="button" data-view-photo="'+b.id+'" style="font-size:12px;font-weight:600;color:var(--gold-deep);min-height:36px;padding:4px 0;">📷 View bill photo</button>' : '')+
+    (reminder
+      ? '<p role="status" style="font-size:12.5px;font-weight:600;color:'+toneColor+';margin-top:2px;">🔔 '+esc(reminder)+' <span style="font-weight:400;color:var(--dim);">(Reminder status: ON — banner + notification)</span></p>'
+      : (!b.paid ? '<p style="font-size:12px;color:var(--dim);margin-top:2px;">Reminder status: set — the top banner and a notification will appear 3 days before, 1 day before and on the due date.</p>' : ''))+
+  '</div>';
+  return h;
+}
+function renderBills(app){
+  var unpaid = DB.bills.filter(function(b){ return !b.paid; }).sort(function(a,b){ return a.due<b.due?-1:1; });
+  var paid = DB.bills.filter(function(b){ return b.paid; }).sort(function(a,b){ return a.due<b.due?1:-1; });
+  var unpaidTotal = 0; unpaid.forEach(function(b){ unpaidTotal += +b.amount||0; });
+  var overdueCount = unpaid.filter(function(b){ return daysUntil(b.due)<0; }).length;
+  var reminders = unpaid.map(function(b){ return { bill:b, text: billReminderText(b) }; }).filter(function(r){ return r.text !== null; });
+  var ns = notifState();
+  var notifCard = "";
+  if (ns === "unsupported"){
+    notifCard = '<div class="card" style="margin-top:16px;"><h3 style="font-size:14px;font-weight:600;">🔔 Notifications on this phone</h3>'+
+      '<p class="small dim" style="margin-top:4px;">This browser does not support notifications, so reminders will show as the banner at the top of the app and in the list below whenever you open the app.</p></div>';
+  } else if (ns === "granted"){
+    notifCard = '<div class="card" style="margin-top:16px;border-color:var(--gold);"><h3 style="font-size:14px;font-weight:600;">🔔 Notifications: ON</h3>'+
+      '<p class="small dim" style="margin-top:4px;">You allowed notifications. When a bill is due in 3 days, 1 day, due today or overdue, the app shows the top banner and sends a browser notification while the app is open or when you open it.'+(notifBlocked ? " Note: this browser blocked the last notification attempt, so keep an eye on the top banner too." : "")+'</p>'+
+      '<p class="small dim" style="margin-top:4px;">Honest note: a web page cannot promise push notifications while the app is fully closed — that needs an installed app with a server behind it. This offline app reminds you the moment you open it, and nothing is stored on any server.</p></div>';
+  } else if (ns === "denied"){
+    notifCard = '<div class="card" style="margin-top:16px;border-color:var(--danger);"><h3 style="font-size:14px;font-weight:600;">🔔 Notifications: BLOCKED</h3>'+
+      '<p class="small dim" style="margin-top:4px;">You (or your browser) blocked notifications for this page, so the app cannot send browser notifications. To allow them, open your browser\'s site settings for this page and set Notifications to Allow. Until then, reminders still show as the banner at the top of the app and in the list below whenever you open the app.</p></div>';
+  } else {
+    notifCard = '<div class="card" style="margin-top:16px;border-color:var(--gold);"><h3 style="font-size:14px;font-weight:600;">🔔 Get bill notifications</h3>'+
+      '<p class="small dim" style="margin-top:4px;">Allow notifications and the app itself will remind you about bills due in 3 days, 1 day, due today and overdue — as a top banner and as a browser notification whenever the browser allows it. Due dates are stored only on this phone.</p>'+
+      '<button class="btn-gold" id="notifAllowBtn" style="margin-top:12px;">Allow notifications</button>'+
+      '<p class="small dim" style="margin-top:8px;">Honest note: notifications can only appear while the app is open or when you open it — a web page cannot promise push alerts while the app is fully closed.</p></div>';
+  }
+  var html = '<h2 class="font-display" style="font-size:24px;">Bill Reminders</h2>'+
+    '<p class="small dim" style="margin-top:4px;">PTCL, gas, water and electricity bills — added by you, by hand, with the bill\'s photo or screenshot attached if you want. The app does not fetch bills from any company; it counts down to each due date you enter and reminds you 3 days before, 1 day before and on the due date.</p>'+
+    notifCard+
+    (reminders.length ?
+      '<section style="margin-top:16px;border-radius:16px;padding:16px;background:'+(overdueCount>0?"rgba(178,58,50,.08)":"var(--surface)")+';border:1px solid '+(overdueCount>0?"var(--danger)":"var(--gold)")+';" aria-label="Bill reminders">'+
+      '<h3 style="font-size:13px;font-weight:600;letter-spacing:.05em;color:var(--gold-deep);">REMINDERS</h3>'+
+      '<div style="margin-top:6px;display:flex;flex-direction:column;gap:6px;">'+
+      reminders.map(function(r){
+        var cd = billCountdown(r.bill);
+        var tail = cd.text.toLowerCase()==="due today" ? "is due today." : r.text.replace(/^Reminder: this bill /,"").replace(/^Reminder: /,"");
+        return '<p style="font-size:14px;margin:0;">🔔 <strong>'+esc(billLabel(r.bill))+' bill — '+esc(fmt(r.bill.amount))+'</strong> <span style="color:var(--dim);">'+esc(tail)+'</span></p>';
+      }).join("")+'</div></section>' : '')+
+    '<section class="darkcard" style="margin-top:16px;" aria-label="Unpaid bills total">'+
+      '<p class="dlbl">Unpaid bills</p><p class="money font-display dbig">'+esc(fmt(unpaidTotal))+'</p>'+
+      '<p style="margin-top:6px;font-size:12px;color:var(--darkdim);">'+unpaid.length+(unpaid.length===1?" bill":" bills")+' still to pay'+(overdueCount>0 ? " · "+overdueCount+" overdue" : "")+'</p>'+
+    '</section>'+
+    '<button class="btn-gold" id="addBillBtn" style="margin-top:16px;">+ Add a bill</button>'+
+    '<h3 class="font-display" style="font-size:20px;margin-top:28px;">Upcoming Bills</h3>'+
+    '<div class="listbox" style="margin-top:8px;">'+
+    (unpaid.length===0
+      ? '<p style="padding:20px 0;text-align:center;font-size:14px;color:var(--dim);">No unpaid bills. Tap "+ Add a bill" above and enter your PTCL, gas, water or electricity bill with its due date.</p>'
+      : unpaid.map(billRowHTML).join(""))+
+    '</div>'+
+    (paid.length ?
+      '<h3 class="font-display" style="font-size:20px;margin-top:28px;">Paid Bills</h3>'+
+      '<div class="listbox" style="margin-top:8px;">'+paid.map(billRowHTML).join("")+'</div>'+
+      '<p class="xsmall dim" style="margin-top:8px;">Tap "Paid ✓" on a bill to move it back to unpaid if you marked it by mistake.</p>' : '');
+  app.innerHTML = html;
+  var allowBtn = document.getElementById("notifAllowBtn");
+  if (allowBtn){
+    allowBtn.addEventListener("click", function(){
+      try {
+        var p = Notification.requestPermission();
+        if (p && p.then) p.then(function(){ render(); maybeNotify(); });
+        else setTimeout(function(){ render(); maybeNotify(); }, 400);
+      } catch(e){ render(); }
+    });
+  }
+  document.getElementById("addBillBtn").addEventListener("click", function(){ openBillSheet({ mode:"add" }); });
+  app.querySelectorAll("[data-edit-bill]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var bill = DB.bills.filter(function(x){ return x.id===b.getAttribute("data-edit-bill"); })[0];
+      if (bill) openBillSheet({ mode:"edit", bill:bill });
+    });
+  });
+  app.querySelectorAll("[data-pay-bill]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var id = b.getAttribute("data-pay-bill");
+      DB.bills.forEach(function(x){ if (x.id===id){ x.paid = !x.paid; x.paidDate = x.paid ? todayStr() : ""; } });
+      save(); render(); toast("Bill updated. ✓");
+    });
+  });
+  app.querySelectorAll("[data-view-photo]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var bill = DB.bills.filter(function(x){ return x.id===b.getAttribute("data-view-photo"); })[0];
+      if (!bill || !bill.photo) return;
+      var root = document.getElementById("photoRoot");
+      root.innerHTML = '<div class="photoview open"><button class="scrim" data-close-photo aria-label="Close bill photo"></button>'+
+        '<figure><img src="'+bill.photo+'" alt="Full photo of the '+esc(billLabel(bill))+' bill">'+
+        '<figcaption>'+esc(billLabel(bill))+' bill · '+esc(fmt(bill.amount))+' · Due '+esc(dateLabel(bill.due))+' · '+esc(billCountdown(bill).text)+'</figcaption>'+
+        '<button class="btn-gold" data-close-photo style="margin-top:12px;">Close</button></figure></div>';
+      root.querySelectorAll("[data-close-photo]").forEach(function(x){
+        x.addEventListener("click", function(){ root.innerHTML = ""; });
+      });
+    });
+  });
+}
+
+/* ============ BUDGET TAB ============ */
+var catEdit = { id:null, name:"", color:PALETTE[0], confirmDelete:null, newName:"", newColor:PALETTE[0], error:"" };
+function swatchesHTML(selected, attr){
+  return '<div style="display:flex;flex-wrap:wrap;gap:8px;" role="group">'+PALETTE.map(function(c){
+    return '<button type="button" class="swatch'+(selected===c?" on":"")+'" data-'+attr+'="'+c+'" aria-pressed="'+(selected===c)+'" aria-label="Colour '+c+'" style="background:'+c+';"></button>';
+  }).join("")+'</div>';
+}
+function renderBudget(app){
+  var mk = state.month;
+  var n = monthNumbers(mk);
+  var html = monthSwitcherHTML(mk)+
+    '<div class="card" style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;">'+
+      '<div><p class="small dim">'+esc(monthLabel(mk))+' — this month\'s own budget</p>'+
+      '<p class="money font-display" style="font-size:24px;">'+(n.fund>0 ? esc(fmt(n.fund)) : "Not set")+'</p>'+
+      (n.ownCarry!==0 ? '<p class="xsmall dim" style="margin-top:2px;">'+esc(signedFmt(n.ownCarry))+' carried forward from last month is added on top automatically — total starting budget '+esc(fmt(n.fund + n.ownCarry + n.papaAvailable))+' including Papa\'s money.</p>' : '')+
+      '</div>'+
+      '<button class="btn-pill" id="budgetFundBtn">Set budget</button>'+
+    '</div>'+
+    '<h2 class="font-display" style="font-size:20px;margin-top:24px;">Budget for Each Category</h2>'+
+    '<p class="small dim" style="margin-top:4px;">Enter a limit for each category for '+esc(monthLabel(mk))+' and tap Save. 0 means no budget.</p>'+
+    '<div class="listbox" style="margin-top:8px;">'+
+    DB.categories.map(function(c){
+      var budget = catBudget(mk, c.id), spent = catSpentMonth(mk, c.id);
+      return '<div style="padding:12px 0;border-bottom:1px solid var(--border);"><div style="display:flex;align-items:center;gap:12px;">'+
+        monogram(c.name, c.color, 36)+
+        '<span style="flex:1;min-width:0;"><span style="display:block;font-size:15px;font-weight:600;">'+esc(c.name)+'</span>'+
+        '<span class="money" style="display:block;font-size:12px;color:var(--dim);">Spent so far this month: '+esc(fmt(spent))+'</span></span>'+
+        '<label style="position:absolute;left:-9999px;" for="bdg-'+c.id+'">Monthly budget for '+esc(c.name)+' (Rs)</label>'+
+        '<input id="bdg-'+c.id+'" type="number" inputmode="numeric" placeholder="0" value="'+(budget>0?budget:"")+'" style="width:104px;text-align:right;">'+
+        '<button type="button" class="btn-gold" data-save-budget="'+c.id+'" style="width:auto;padding:11px 16px;font-size:14px;">Save</button>'+
+      '</div></div>';
+    }).join("")+
+    '</div>'+
+    '<h2 class="font-display" style="font-size:20px;margin-top:24px;">Manage Categories</h2>'+
+    '<div class="card" style="margin-top:8px;">'+
+    DB.categories.map(function(c){
+      var cnt = 0; DB.expenses.forEach(function(e){ if (e.catId===c.id) cnt++; });
+      var h = '<div style="padding:12px 0;border-bottom:1px solid var(--border);"><div style="display:flex;align-items:center;gap:12px;">'+
+        monogram(c.name, c.color, 36)+
+        '<span style="flex:1;"><span style="display:block;font-size:15px;font-weight:600;">'+esc(c.name)+'</span>'+
+        '<span style="display:block;font-size:12px;color:var(--dim);">'+cnt+' saved expenses</span></span>'+
+        '<button type="button" data-cat-edit="'+c.id+'" style="border:1px solid var(--border);border-radius:9px;padding:9px 14px;font-size:14px;font-weight:500;">Edit</button>';
+      if (catEdit.confirmDelete===c.id){
+        h += '<button type="button" data-cat-del-yes="'+c.id+'" style="background:var(--danger);color:#fff;border-radius:9px;padding:9px 14px;font-size:14px;font-weight:600;">Confirm?</button>'+
+             '<button type="button" data-cat-del-no="1" style="padding:9px 10px;font-size:14px;color:var(--dim);">Cancel</button>';
+      } else {
+        h += '<button type="button" data-cat-del="'+c.id+'" style="padding:9px 10px;font-size:14px;font-weight:500;color:var(--danger);">Delete</button>';
+      }
+      h += '</div>';
+      if (catEdit.id===c.id){
+        h += '<div style="margin-top:12px;"><label class="fldlbl" style="margin-top:0;" for="catEditName">Category name</label>'+
+          '<input id="catEditName" type="text" value="'+esc(catEdit.name)+'">'+
+          '<div style="margin-top:12px;">'+swatchesHTML(catEdit.color, "sw-edit")+'</div>'+
+          '<button type="button" class="btn-gold" data-cat-edit-save="'+c.id+'" style="width:auto;padding:11px 20px;font-size:14px;margin-top:12px;">Save</button></div>';
+      }
+      return h + '</div>';
+    }).join("")+
+    '<h3 class="font-display" style="font-size:18px;margin-top:16px;">New Category</h3>'+
+    '<label class="fldlbl" for="newCatName">Name — e.g. Bills, Mobile, Travel</label>'+
+    '<input id="newCatName" type="text" placeholder="Category name" value="'+esc(catEdit.newName)+'">'+
+    '<div style="margin-top:12px;">'+swatchesHTML(catEdit.newColor, "sw-new")+'</div>'+
+    '<button class="btn-gold" id="addCatBtn" style="margin-top:12px;">+ Add Category</button>'+
+    '<p class="xsmall dim" style="margin-top:8px;">Tip: for one-off things inside Other — like a board refill — you do not need a whole new category. Add the expense under Other and type your own sub-category name on it instead.</p>'+
+    (catEdit.error ? '<p class="err" role="alert">'+esc(catEdit.error)+'</p>' : '')+
+    '</div>';
+  app.innerHTML = html;
+  wireMonthSwitcher(app);
+  document.getElementById("budgetFundBtn").addEventListener("click", openFundSheet);
+  app.querySelectorAll("[data-save-budget]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var cid = b.getAttribute("data-save-budget");
+      var inp = document.getElementById("bdg-"+cid);
+      var v = parseFloat(inp.value) || 0;
+      if (!DB.budgets) DB.budgets = {};
+      if (!DB.budgets[mk]) DB.budgets[mk] = {};
+      DB.budgets[mk][cid] = v;
+      save();
+      b.textContent = "Saved ✓";
+      setTimeout(function(){ b.textContent = "Save"; }, 2000);
+    });
+  });
+  app.querySelectorAll("[data-cat-edit]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var c = catById(b.getAttribute("data-cat-edit"));
+      if (!c) return;
+      if (catEdit.id===c.id){ catEdit.id = null; }
+      else { catEdit.id = c.id; catEdit.name = c.name; catEdit.color = c.color; }
+      catEdit.error = ""; render();
+    });
+  });
+  app.querySelectorAll("[data-sw-edit]").forEach(function(b){
+    b.addEventListener("click", function(){ catEdit.color = b.getAttribute("data-sw-edit"); render(); });
+  });
+  app.querySelectorAll("[data-cat-edit-save]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var name = document.getElementById("catEditName").value.trim();
+      if (!name){ catEdit.error = "Please enter a category name."; render(); return; }
+      var c = catById(b.getAttribute("data-cat-edit-save"));
+      if (c){ c.name = name; c.color = catEdit.color; }
+      catEdit.id = null; catEdit.error = ""; save(); render(); toast("Category updated. ✓");
+    });
+  });
+  app.querySelectorAll("[data-cat-del]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var cid = b.getAttribute("data-cat-del");
+      var cnt = 0; DB.expenses.forEach(function(e){ if (e.catId===cid) cnt++; });
+      if (cnt>0){ catEdit.error = "This category has " + cnt + " saved expenses, so it cannot be deleted — your history is never lost. Rename it instead if you like."; render(); return; }
+      catEdit.confirmDelete = cid; catEdit.error = ""; render();
+    });
+  });
+  app.querySelectorAll("[data-cat-del-no]").forEach(function(b){
+    b.addEventListener("click", function(){ catEdit.confirmDelete = null; render(); });
+  });
+  app.querySelectorAll("[data-cat-del-yes]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var cid = b.getAttribute("data-cat-del-yes");
+      DB.categories = DB.categories.filter(function(x){ return x.id!==cid; });
+      Object.keys(DB.budgets||{}).forEach(function(k){ if (DB.budgets[k]) delete DB.budgets[k][cid]; });
+      catEdit.confirmDelete = null; save(); render(); toast("Category deleted.");
+    });
+  });
+  app.querySelectorAll("[data-sw-new]").forEach(function(b){
+    b.addEventListener("click", function(){
+      catEdit.newName = document.getElementById("newCatName").value;
+      catEdit.newColor = b.getAttribute("data-sw-new"); render();
+    });
+  });
+  document.getElementById("addCatBtn").addEventListener("click", function(){
+    var name = document.getElementById("newCatName").value.trim();
+    if (!name){ catEdit.error = "Please enter a category name."; catEdit.newName = ""; render(); return; }
+    DB.categories.push({ id: uid(), name: name, color: catEdit.newColor });
+    catEdit.newName = ""; catEdit.error = ""; save(); render(); toast("Category added. ✓");
+  });
+}
+
+/* ============ NAV + MASTER RENDER ============ */
+var NAV = [
+  { id:"dashboard", label:"Dashboard", icon:"M3 11.5 12 4l9 7.5M5 10v10h5v-6h4v6h5V10" },
+  { id:"calendar", label:"Calendar", icon:"M4 6h16v14H4zM4 10h16M8 3v4M16 3v4" },
+  { id:"transactions", label:"Transactions", icon:"M7 4v13M7 4 4 7M7 4l3 3M17 20V7M17 20l3-3M17 20l-3-3" },
+  { id:"papa", label:"Papa", icon:"M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" },
+  { id:"bills", label:"Bills", icon:"M6 3h12v18l-2-1.5L14 21l-2-1.5L10 21l-2-1.5L6 21zM9 8h6M9 12h6" },
+  { id:"budget", label:"Budget", icon:"M4 7h16v12H4zM4 7c0-1.7 1.3-3 3-3h11v3M16 13h.01" }
+];
+function buildNav(){
+  var bar = document.getElementById("tabbar");
+  bar.innerHTML = NAV.map(function(item){
+    var active = state.tab===item.id;
+    return '<button type="button" class="tab'+(active?" on":"")+'" data-tab="'+item.id+'" aria-current="'+(active?"page":"false")+'">'+
+      '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+item.icon+'"/></svg>'+
+      '<span>'+item.label+'</span></button>';
+  }).join("");
+  bar.querySelectorAll("[data-tab]").forEach(function(b){
+    b.addEventListener("click", function(){
+      state.tab = b.getAttribute("data-tab");
+      window.scrollTo(0,0);
+      render();
+    });
+  });
+}
+function render(){
+  buildNav();
+  renderBanner();
+  var app = document.getElementById("app");
+  if (state.tab==="dashboard") renderDashboard(app);
+  else if (state.tab==="calendar") renderCalendar(app);
+  else if (state.tab==="transactions") renderTransactions(app);
+  else if (state.tab==="papa") renderPapa(app);
+  else if (state.tab==="bills") renderBills(app);
+  else renderBudget(app);
+  renderBanner(); /* re-measure after content paints */
+  if (state.catPage) renderCategoryPage();
+  maybeNotify();
+}
+document.getElementById("fabAdd").addEventListener("click", function(){
+  openExpenseSheet({ mode:"add", date: todayStr() });
+});
+render();
+</script>
+</body>
+</html>
